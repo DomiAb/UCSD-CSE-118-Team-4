@@ -14,6 +14,22 @@ The final project of group 4 for CSE118 Ubiquitous Computing.
 [Project Proposal Report](https://sharelatex.tum.de/project/690d301212fba3742783ac4e)  
 [Project Proposal Presentation](https://docs.google.com/presentation/d/199U9tzib8zMWN0UVl53Fl3ZVSA91Sav9CxOjo6CdL8U/edit?slide=id.p#slide=id.p) 
 
+# Setup
+## Jetson
+Start by creating a virtual environment (one called ```jetson_venv``` is already included in the .gitignore).  
+```python3 -m venv jetson_venv```  
+
+Activate this virtual environment.  
+```source ./jetson_venv/bin/activate```   
+
+Install the requirements.  
+```pip install -r ./jetson/requirements.txt```  
+
+Run the server.  
+```python ./jetson/server/main.py```
+
+## HoloLens
+
 # Contributors
 Dominik Abel (Dominik.Abel@tum.de)  
 Anchit Kumar  
