@@ -1,15 +1,29 @@
 import asyncio
-import websockets
 import json
-from logging import getLogger, StreamHandler, DEBUG
+import logging
+import sys
+import websockets
 
-logger = getLogger(__name__)
-handler = StreamHandler()
-handler.setLevel(DEBUG)
-logger.addHandler(handler)
+from jetson.context.context_from_speech import get_audio_response
+from jetson.server.output import speak
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler("jetson_server.log", mode="w")
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
 
 clients = set()
-
 mic_running = False
 
 
