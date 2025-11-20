@@ -12,24 +12,24 @@ def query_gemini(gemini_prompt: str) -> str:
 
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
-    payload = json.dumps({
-    "contents": [
-        {
-        "parts": [
+    payload = {
+        "contents": [
             {
-            "text": gemini_prompt
+                "parts": [
+                    {
+                        "text": gemini_prompt
+                    }
+                ]
             }
         ]
-        }
-    ]
-    })
+    }
     headers = {
-    'x-goog-api-key': api_key,
-    'Content-Type': 'application/json'
+        'x-goog-api-key': api_key,
+        'Content-Type': 'application/json'
     }
 
     try:
-        response = requests.post(url, headers=headers, data=payload)
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         
         result = response.json()
