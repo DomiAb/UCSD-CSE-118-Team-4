@@ -30,7 +30,7 @@ Run the server.
 
 ## HoloLens
 
-# Adresses
+# Addresses
 IP Address of the Jetson in the class network (```3219```) should be static and is ```192.168.0.249```  
 IP Address of the Hololens in the class network (```3219```) is ```192.168.0.192```
 
