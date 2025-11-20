@@ -36,7 +36,7 @@ def query_gemini(gemini_prompt: str) -> str:
         return result['candidates'][0]['content']['parts'][0]['text']
         
     except Exception as e:
-        print(f"Gemini Error: {e}")
+        logging.getLogger(__name__).error(f"Gemini Error: {e}")
         return "There was an error with gemini processing your request."
 
 
