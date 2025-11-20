@@ -48,7 +48,7 @@ async def handle_hololens(ws):
             logger.info(f"Unknown message from HoloLens: {data}")
 
 
-async def handler(ws, path):
+async def handler(ws):
     """Register HoloLens clients and listen to their messages."""
     logger.info(f"New HoloLens connection from {ws.remote_address}")
     clients.add(ws)
