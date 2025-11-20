@@ -1,15 +1,29 @@
 import asyncio
-import websockets
 import json
-from logging import getLogger, StreamHandler, DEBUG
+import logging
+import sys
+import websockets
 
-logger = getLogger(__name__)
-handler = StreamHandler()
-handler.setLevel(DEBUG)
-logger.addHandler(handler)
+from jetson.context.context_from_speech import get_audio_response
+from jetson.server.output import speak
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler("jetson_server.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
 
 clients = set()
-
 mic_running = False
 
 async def notify_hololens(event_type: str):
@@ -24,6 +38,8 @@ async def handle_hololens(ws):
         data = json.loads(message)
         if data.get("type") == "audio_data":
             logger.info("Received text from HoloLens:", data["data"])
+            response = get_audio_response(data["data"])
+            speak(response)
         else:
             logger.info("Unknown message type from HoloLens:", data)
 

@@ -25,8 +25,17 @@ Activate this virtual environment.
 Install the requirements.  
 ```pip install -r ./jetson/requirements.txt```  
 
+Set the Gemini API Key in your env variables as ```GEMINI_API_KEY```.  
+UNIX: ```echo 'export GEMINI_API_KEY="your_api_key_here"' >> ~/.bashrc
+source ~/.bashrc```  
+WINDOWS: ```setx GEMINI_API_KEY "your_api_key_here"```
+
+Verify that the previous step worked.  
+UNIX: ```echo $GEMINI_API_KEY```  
+WINDOWS: ```echo %GEMINI_API_KEY%```
+
 Run the server.  
-```python ./jetson/server/main.py```
+```python -m jetson.server.main```
 
 ## HoloLens
 
