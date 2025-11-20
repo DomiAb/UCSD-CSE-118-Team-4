@@ -42,7 +42,7 @@ def query_gemini(gemini_prompt: str) -> str:
 
 def call_llm(context: str) -> str:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
-    try :
+    try:
         response = query_gemini(f'Give me a possible answer or question I could ask after I heard the following text: {context}. Give me only the answer or question without any additional text.')
         return response
     except Exception as e:
