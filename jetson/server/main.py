@@ -40,9 +40,13 @@ async def handle_hololens(ws):
         data = json.loads(message)
 
         if data.get("type") == "audio_data":
-            logger.info(f"Received text from HoloLens: {data['data']}")
-            response = await asyncio.to_thread(get_audio_response, data["data"])
-            await asyncio.to_thread(speak, response)
+            audio_text = data.get("data")
+            if audio_text is not None:
+                logger.info(f"Received text from HoloLens: {audio_text}")
+                response = await asyncio.to_thread(get_audio_response, audio_text)
+                await asyncio.to_thread(speak, response)
+            else:
+                logger.warning(f"Received 'audio_data' message without 'data' key: {data}")
 
         else:
             logger.info(f"Unknown message from HoloLens: {data}")
