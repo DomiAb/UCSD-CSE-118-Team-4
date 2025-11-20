@@ -1,2 +1,4 @@
 pyttsx3
 websockets
+requests
+websockets
