@@ -2,7 +2,7 @@
 This document describes how the messages sent between the Jetson and the HoloLens should look. It defines the message format.  
 All messages are sent as data via a TCP connection in json format.
 
-# Messages FROM Jetson TO HoloLens
+## Messages FROM Jetson TO HoloLens
 ### Start Microphone Recording
 ```
 {
@@ -18,7 +18,7 @@ All messages are sent as data via a TCP connection in json format.
 ```
 
 
-# Messages FROM HoloLens TO Jetson
+## Messages FROM HoloLens TO Jetson
 ### Microphone recording
 As the HoloLens has the built-in feature of converting an audio recording to spoken text, this task is left to the HoloLens. Therefore, not the audio recording, but the spoken text is sent to the Jetson.
 ```
