@@ -27,6 +27,6 @@ def suggest(req: ContextRequest):
         options=[
             f"I heard: '{t}'. Is that right?",
             "Sorry, could you please repeat that?",
-            "Give me a moment, I’m thinking about what to say."
+            "Give me a moment."
         ]
     )
