@@ -1,6 +1,9 @@
 # VENV for jetson
 jetson_venv/
 
+# Local VENVs
+cse118/
+
 # Python cache files
 __pycache__/
 *.pyc
@@ -9,3 +12,4 @@ __pycache__/
 
 # Logs
 *.log
+
