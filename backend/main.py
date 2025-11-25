@@ -1,32 +1,47 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List
+import asyncio
+from flask import Flask, request, jsonify
+from jetson.context.context_from_speech import get_audio_response
+from jetson.server.output import speak
 
-"""
-Command to run server:
-uvicorn main:app --host 0.0.0.0 --port 8000
-"""
+app = Flask(__name__)
 
-app = FastAPI()
+options = []
 
-class ContextRequest(BaseModel):
-    transcript: str
 
-class SuggestionResponse(BaseModel):
-    options: List[str]
-
-@app.get("/health")
+@app.route("/health", methods=["GET"])
 def health():
-    return {"status": "ok"}
+    return jsonify({"status": "ok"})
 
-@app.post("/suggest", response_model=SuggestionResponse)
-def suggest(req: ContextRequest):
-    t = req.transcript
-    # DUMMY behavior for now
-    return SuggestionResponse(
-        options=[
-            f"I heard: '{t}'. Is that right?",
-            "Sorry, could you please repeat that?",
-            "Give me a moment."
-        ]
-    )
+
+@app.route("/suggest", methods=["POST"])
+def suggest():
+    data = request.get_json()
+    audio_text = data.get("data", "")
+    responses = asyncio.run(asyncio.to_thread(get_audio_response, audio_text))
+
+    global options
+    options = responses
+
+    return jsonify({"options": responses})
+
+
+@app.route("/select-input", methods=["POST"])
+def select_input():
+    global options
+
+    data = request.get_json()
+    number_str = data.get("data", "")
+
+    try:
+        number = int(number_str)
+        response = options[number - 1]
+    except Exception:
+        return jsonify({"error": "Invalid option index"}), 400
+
+    asyncio.run(asyncio.to_thread(speak, response))
+
+    return jsonify({"status": "ok"})
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8765)
