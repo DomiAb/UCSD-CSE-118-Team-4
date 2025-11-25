@@ -40,15 +40,16 @@ def query_gemini(gemini_prompt: str) -> str:
         return "There was an error with gemini processing your request."
 
 
-def call_llm(context: str) -> str:
+def call_llm(context: str) -> list[str]:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
     try:
-        response = query_gemini(f'Give me a possible answer or question I could ask after I heard the following text: {context}. Give me only the answer or question without any additional text.')
-        return response
+        response = query_gemini(f'You hear the following text: {context}. Give me a three possible answer or question I could ask after I heard that text. Give me only the answer or question without any additional text. The three options should be concise and to the point. Separate the three options with a semicolon ";"')
+        options = [option.strip() for option in response.split(';')]
+        return options
     except Exception as e:
         logging.getLogger(__name__).error(f"LLM Error: {e}")
-        return "Default response as long as the api key is not set."
+        return ["Default response as long as the api key is not set."]
 
 
-def get_audio_response(audio_data: str) -> str:
+def get_audio_response(audio_data: str) -> list[str]:
     return call_llm(audio_data)
