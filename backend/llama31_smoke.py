@@ -1,5 +1,5 @@
 """
-Quick smoke test for Llama 3.1 8B Instruct on a local GPU (Jetson).
+Quick smoke test for Llama 3.2 3B Instruct (default) or any HF causal LM.
 
 Example:
     python backend/llama31_smoke.py --heard "Can you join us for lunch?" \
@@ -19,7 +19,7 @@ from typing import Optional
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-DEFAULT_MODEL_ID = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+DEFAULT_MODEL_ID = "meta-llama/Llama-3.2-3B-Instruct"
 DEFAULT_TEMP = 0.4
 DEFAULT_TOP_P = 0.9
 DEFAULT_MAX_NEW_TOKENS = 96
@@ -34,7 +34,8 @@ def build_generator(
     model_id: str = DEFAULT_MODEL_ID, hf_token: Optional[str] = None
 ):
     """Load the model and create a text-generation pipeline."""
-    if "meta-llama" in model_id.lower() and not hf_token:
+    lower_model = model_id.lower()
+    if not hf_token and ("llama-3.1" in lower_model):
         raise RuntimeError(
             "This model is gated on Hugging Face. Please set HF_TOKEN/HUGGINGFACE_TOKEN "
             "or pass --hf-token after accepting the model license."
