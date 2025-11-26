@@ -6,7 +6,8 @@ Example:
         --context "Team meeting" --goal "Be concise and friendly"
 
 Dependencies (install in your env):
-    pip install torch transformers accelerate bitsandbytes sentencepiece
+    pip install torch transformers accelerate sentencepiece
+    # Optional for CUDA quantization: bitsandbytes (>=0.43.1)
 
 If the model is gated, set HF_TOKEN/HUGGINGFACE_TOKEN or pass --hf-token.
 """
