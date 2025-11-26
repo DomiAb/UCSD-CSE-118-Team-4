@@ -31,7 +31,9 @@ def _token_kwargs(hf_token: Optional[str]) -> dict:
 
 
 def build_generator(
-    model_id: str = DEFAULT_MODEL_ID, hf_token: Optional[str] = None
+    model_id: str = DEFAULT_MODEL_ID,
+    hf_token: Optional[str] = None,
+    load_in_4bit: bool = True,
 ):
     """Load the model and create a text-generation pipeline."""
     lower_model = model_id.lower()
@@ -55,8 +57,9 @@ def build_generator(
         **token_kwargs,
     )
     if device == "cuda":
-        # Only request 4-bit when CUDA is present; bitsandbytes fails on CPU/MPS.
-        model_kwargs["load_in_4bit"] = True
+        # Request 4-bit when CUDA is present; bitsandbytes fails on CPU/MPS.
+        if load_in_4bit:
+            model_kwargs["load_in_4bit"] = True
         model_kwargs["device_map"] = "auto"
     else:
         model_kwargs["device_map"] = {"": device}
@@ -95,10 +98,13 @@ def generate_single_reply(
     user_goal: str = "",
     model_id: str = DEFAULT_MODEL_ID,
     hf_token: Optional[str] = None,
+    load_in_4bit: bool = True,
 ) -> str:
     """Convenience wrapper if you just need one reply in code."""
     prompt = build_prompt(heard_text, context, user_goal)
-    generator = build_generator(model_id=model_id, hf_token=hf_token)
+    generator = build_generator(
+        model_id=model_id, hf_token=hf_token, load_in_4bit=load_in_4bit
+    )
     raw = generator(prompt, num_return_sequences=1)[0]["generated_text"]
     return raw.split("Reply:", 1)[-1].strip()
 
@@ -128,11 +134,18 @@ def main():
         default=None,
         help="Hugging Face token if the model is gated (falls back to HF_TOKEN env).",
     )
+    parser.add_argument(
+        "--no-4bit",
+        action="store_true",
+        help="Disable 4-bit loading (use this if bitsandbytes is unavailable).",
+    )
     args = parser.parse_args()
 
     hf_token = args.hf_token or os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
 
-    generator = build_generator(model_id=args.model, hf_token=hf_token)
+    generator = build_generator(
+        model_id=args.model, hf_token=hf_token, load_in_4bit=not args.no_4bit
+    )
     prompt = build_prompt(args.heard, args.context, args.goal)
     result = generator(prompt, num_return_sequences=1)[0]["generated_text"]
     reply = result.split("Reply:", 1)[-1].strip()
