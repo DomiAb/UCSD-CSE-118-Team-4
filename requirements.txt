@@ -3,3 +3,4 @@ asyncio
 requests
 fastapi
 uvicorn
+llama-cpp-python

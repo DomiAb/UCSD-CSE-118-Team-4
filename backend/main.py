@@ -8,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from LLM_response import (
     DEFAULT_MODEL_ID,
+    DEFAULT_MAX_NEW_TOKENS,
     build_generator,
     build_prompt,
     extract_primary_reply,
@@ -68,11 +69,25 @@ def _get_llm_pipeline():
     load_in_4bit = (
         os.getenv("LLM_NO_4BIT", "").lower() not in {"1", "true", "yes"}
     )
+    backend = os.getenv("LLM_BACKEND", "torch")
+    llama_model_path = os.getenv("LLAMA_CPP_MODEL_PATH", "")
+    n_ctx = int(os.getenv("LLM_CONTEXT_LEN", "512"))
+    n_threads_env = os.getenv("LLM_THREADS")
+    n_threads = int(n_threads_env) if n_threads_env else None
+    device_override = os.getenv("LLM_DEVICE")
+    max_new_tokens_env = os.getenv("LLM_MAX_NEW_TOKENS")
+    max_new_tokens = int(max_new_tokens_env) if max_new_tokens_env else None
 
     _llm_pipeline = build_generator(
         model_id=model_id,
         hf_token=hf_token,
         load_in_4bit=load_in_4bit,
+        backend=backend,
+        llama_model_path=llama_model_path,
+        n_ctx=n_ctx,
+        n_threads=n_threads,
+        device_override=device_override,
+        max_new_tokens=max_new_tokens or DEFAULT_MAX_NEW_TOKENS,
     )
     return _llm_pipeline
 
