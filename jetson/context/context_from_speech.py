@@ -52,4 +52,5 @@ def call_llm(context: str) -> list[str]:
 
 
 def get_audio_response(audio_data: str) -> list[str]:
+    """Compatibility wrapper to fetch options based on transcribed audio."""
     return call_llm(audio_data)

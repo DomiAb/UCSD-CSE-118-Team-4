@@ -14,6 +14,7 @@ If the model is gated, set HF_TOKEN/HUGGINGFACE_TOKEN or pass --hf-token.
 
 import argparse
 import os
+import re
 from typing import Optional
 
 import torch
@@ -84,12 +85,31 @@ def build_generator(
 def build_prompt(heard_text: str, context: str, user_goal: str) -> str:
     return (
         "You assist a user with a speech impairment. Return one clear, natural reply "
-        "that fits the goal and context.\n"
+        "that fits the goal and context. Do not provide additional explanation. \n"
         f"Context: {context or 'N/A'}\n"
         f"User goal: {user_goal or 'Be concise and polite.'}\n"
         f"Heard text: {heard_text}\n"
         "Reply:"
     )
+
+
+def extract_primary_reply(text: str) -> str:
+    """
+    Extract the main reply sentence from a model's raw output.
+
+    Heuristics:
+    - Take the first non-empty line.
+    - Strip surrounding quotes.
+    - Trim to the first sentence boundary if present.
+    """
+    cleaned = text.strip()
+    lines = [ln.strip() for ln in cleaned.splitlines() if ln.strip()]
+    first = lines[0] if lines else cleaned
+    first = first.strip(' "“”')
+
+    parts = re.split(r"(?<=[.!?])\s+", first)
+    primary = parts[0].strip(' "“”') if parts else first
+    return primary or first
 
 
 def generate_single_reply(
@@ -106,12 +126,13 @@ def generate_single_reply(
         model_id=model_id, hf_token=hf_token, load_in_4bit=load_in_4bit
     )
     raw = generator(prompt, num_return_sequences=1)[0]["generated_text"]
-    return raw.split("Reply:", 1)[-1].strip()
+    raw_reply = raw.split("Reply:", 1)[-1].strip()
+    return extract_primary_reply(raw_reply)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run a local smoke test against Llama 3.1 8B Instruct."
+        description="Run a local smoke test against Llama 3.2 3B Instruct."
     )
     parser.add_argument("--heard", required=True, help="What the other person said.")
     parser.add_argument(

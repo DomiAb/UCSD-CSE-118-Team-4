@@ -4,9 +4,6 @@ import logging
 import sys
 import websockets
 
-from jetson.context.context_from_speech import get_audio_response
-from jetson.server.output import speak
-
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -43,8 +40,9 @@ async def handle_hololens(ws):
             audio_text = data.get("data")
             if audio_text is not None:
                 logger.info(f"Received text from HoloLens: {audio_text}")
-                response = await asyncio.to_thread(get_audio_response, audio_text)
-                await asyncio.to_thread(speak, response)
+                # Echo the text back for the HoloLens app to handle (including TTS).
+                reply = audio_text
+                await ws.send(json.dumps({"type": "response", "data": reply}))
             else:
                 logger.warning(f"Received 'audio_data' message without 'data' key: {data}")
 
