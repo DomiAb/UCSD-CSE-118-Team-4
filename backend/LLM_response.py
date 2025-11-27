@@ -20,10 +20,10 @@ from typing import Optional
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-DEFAULT_MODEL_ID = "meta-llama/Llama-3.2-3B-Instruct"
+DEFAULT_MODEL_ID = os.getenv("LLM_MODEL_ID", "meta-llama/Llama-3.2-3B-Instruct")
 DEFAULT_TEMP = 0.4
 DEFAULT_TOP_P = 0.9
-DEFAULT_MAX_NEW_TOKENS = 96
+DEFAULT_MAX_NEW_TOKENS = int(os.getenv("LLM_MAX_NEW_TOKENS", "48"))
 
 
 def _token_kwargs(hf_token: Optional[str]) -> dict:
@@ -35,6 +35,8 @@ def build_generator(
     model_id: str = DEFAULT_MODEL_ID,
     hf_token: Optional[str] = None,
     load_in_4bit: bool = True,
+    device_override: Optional[str] = None,
+    max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
 ):
     """Load the model and create a text-generation pipeline."""
     lower_model = model_id.lower()
@@ -48,7 +50,14 @@ def build_generator(
 
     has_cuda = torch.cuda.is_available()
     has_mps = torch.backends.mps.is_available()
-    device = "cuda" if has_cuda else "mps" if has_mps else "cpu"
+
+    if device_override == "cpu":
+        device = "cpu"
+    elif device_override == "mps" and has_mps:
+        device = "mps"
+    else:
+        device = "cuda" if has_cuda else "mps" if has_mps else "cpu"
+
     dtype = torch.float16 if device in ("cuda", "mps") else torch.float32
 
     model_kwargs = dict(
@@ -74,7 +83,7 @@ def build_generator(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
+        max_new_tokens=max_new_tokens,
         temperature=DEFAULT_TEMP,
         top_p=DEFAULT_TOP_P,
         do_sample=True,
@@ -119,11 +128,17 @@ def generate_single_reply(
     model_id: str = DEFAULT_MODEL_ID,
     hf_token: Optional[str] = None,
     load_in_4bit: bool = True,
+    device: Optional[str] = None,
+    max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
 ) -> str:
     """Convenience wrapper if you just need one reply in code."""
     prompt = build_prompt(heard_text, context, user_goal)
     generator = build_generator(
-        model_id=model_id, hf_token=hf_token, load_in_4bit=load_in_4bit
+        model_id=model_id,
+        hf_token=hf_token,
+        load_in_4bit=load_in_4bit,
+        device_override=device,
+        max_new_tokens=max_new_tokens,
     )
     raw = generator(prompt, num_return_sequences=1)[0]["generated_text"]
     raw_reply = raw.split("Reply:", 1)[-1].strip()
@@ -160,12 +175,28 @@ def main():
         action="store_true",
         help="Disable 4-bit loading (use this if bitsandbytes is unavailable).",
     )
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cpu", "mps"],
+        default="auto",
+        help="Force device selection (default auto). On Jetson Nano, try cpu.",
+    )
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=DEFAULT_MAX_NEW_TOKENS,
+        help=f"Limit new tokens (default {DEFAULT_MAX_NEW_TOKENS}). Lower to reduce memory.",
+    )
     args = parser.parse_args()
 
     hf_token = args.hf_token or os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
 
     generator = build_generator(
-        model_id=args.model, hf_token=hf_token, load_in_4bit=not args.no_4bit
+        model_id=args.model,
+        hf_token=hf_token,
+        load_in_4bit=not args.no_4bit,
+        device_override=None if args.device == "auto" else args.device,
+        max_new_tokens=args.max_new_tokens,
     )
     prompt = build_prompt(args.heard, args.context, args.goal)
     result = generator(prompt, num_return_sequences=1)[0]["generated_text"]
