@@ -13,13 +13,14 @@ As the HoloLens has the built-in feature of converting an audio recording to spo
 Notes:
 - audio_data and image_data are both optional.  
 - At least one of audio_data or image_data must be provided.
+- image_data should be a base64-encoded string representing the image.
 ```
 
 ### /select-input (POST) Endpoint
 The selected option (as an index) is sent to the Jetson, so that it can read out the corresponding response afterwards.
 ```
 {
-  "selection": 1 | 2 | 3
+  "selection": 1
 }
 ```
 
