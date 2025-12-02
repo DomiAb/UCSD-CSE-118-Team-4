@@ -7,11 +7,9 @@ All messages are sent as data via a HTTP connection in json format.
 As the HoloLens has the built-in feature of converting an audio recording to spoken text, this task is left to the HoloLens. Therefore, not the audio recording, but the spoken text is sent to the Jetson.
 ```
 {
-  "audio_data": "The spoken text. So, the data is here.",   (Optional)
-  "image_data": "The taken photo. So, the data is here."    (Optional, either of one must be provided)
+  "audio_data": "The spoken text. So, the data is here.",
+  "image_data": "The taken photo. So, the data is here."
 }
-```
-
 ### /select-input (POST) Endpoint
 The selected option (as an index) is sent to the Jetson, so, that it can read out the corresponding response afterwards.
 ```
