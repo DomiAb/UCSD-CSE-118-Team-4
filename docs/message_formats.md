@@ -7,8 +7,8 @@ All messages are sent as data via a HTTP connection in json format.
 As the HoloLens has the built-in feature of converting an audio recording to spoken text, this task is left to the HoloLens. Therefore, not the audio recording, but the spoken text is sent to the Jetson.
 ```
 {
-  "audio_data": "The spoken text. So, the data is here.",
-  "image_data": "The taken photo. So, the data is here."
+  "audio_data": "<spoken_text>",
+  "image_data": "<base64_image_data>"
 }
 Notes:
 - audio_data and image_data are both optional.  
