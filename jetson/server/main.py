@@ -5,7 +5,7 @@ import sys
 import websockets
 
 from jetson.context.context import Context
-from jetson.context.response_creator import set_response
+from jetson.context.response_creator import create_context, set_response
 from jetson.server.output import speak
 
 
@@ -38,25 +38,15 @@ async def notify_hololens(event_type: str):
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
     async for message in ws:
-        data = json.loads(message)
-
-        context = Context()
-
-        if "audio_data" in data.keys():
-            audio_text = data.get("audio_data")
-            logger.info(f"Received text from HoloLens: {audio_text}")
-            context.audio_text = audio_text
-
-        if "image_data" in data.keys():
-            image_data = data.get("image_data")
-            logger.info(f"Received image data from HoloLens")
-            context.image = image_data
+        data = json.loads(message)        
 
         if "audio_data" not in data.keys() and "image_data" not in data.keys():
             logger.warning(f"Received a message with unknown type from HoloLens: {data}")
             continue
 
+        context = create_context(data)
         success = await asyncio.to_thread(set_response, context)
+
         if success:
             await asyncio.to_thread(speak, context.response)
         else:
