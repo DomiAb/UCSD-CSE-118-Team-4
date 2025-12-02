@@ -3,7 +3,7 @@ This document describes how the messages sent between the Jetson and the HoloLen
 All messages are sent as data via a HTTP connection in json format.
 
 ## Messages FROM HoloLens TO Jetson
-### /suggest (POST) Endpoint 
+### /suggest (POST) Endpoint
 As the HoloLens has the built-in feature of converting an audio recording to spoken text, this task is left to the HoloLens. Therefore, not the audio recording, but the spoken text is sent to the Jetson.
 ```
 {
