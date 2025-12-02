@@ -38,5 +38,5 @@ The selected option (as an index) is sent to the Jetson, so that it can read out
 ```
 
 ### Answer from /select-input (POST) Endpoint
-No information needs to be sent to the HoloLens. Therefore there will be no response body.
-**Response:** No response body. The server should return HTTP status code `204 No Content`.
+No information needs to be sent to the HoloLens. Therefore there will be no response body.  
+The server should return HTTP status code `204 No Content`.
