@@ -49,6 +49,11 @@ async def handle_hololens(ws):
 
         if success:
             await asyncio.to_thread(speak, context.response)
+            # Also send the text response back to the client.
+            try:
+                await ws.send(json.dumps({"type": "response", "data": context.response}))
+            except Exception as exc:
+                logger.error(f"Failed to send response to client: {exc}")
         else:
             logger.error("Failed to get response from LLM.")
 
