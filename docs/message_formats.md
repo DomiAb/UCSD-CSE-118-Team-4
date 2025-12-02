@@ -10,11 +10,16 @@ As the HoloLens has the built-in feature of converting an audio recording to spo
   "audio_data": "The spoken text. So, the data is here.",
   "image_data": "The taken photo. So, the data is here."
 }
+Notes:
+- audio_data and image_data are both optional.  
+- At least one of audio_data or image_data must be provided.
+```
+
 ### /select-input (POST) Endpoint
-The selected option (as an index) is sent to the Jetson, so, that it can read out the corresponding response afterwards.
+The selected option (as an index) is sent to the Jetson, so that it can read out the corresponding response afterwards.
 ```
 {
-  "selection": 1/2/3
+  "selection": 1 | 2 | 3
 }
 ```
 
@@ -31,9 +36,8 @@ The selected option (as an index) is sent to the Jetson, so, that it can read ou
 }
 ```
 
-### /select-input (POST) Endpoint
-No information needs to be send to the HoloLens. Therefore no data will be transmitted.
+### Answer from /select-input (POST) Endpoint
+No information needs to be sent to the HoloLens. Therefore there will be no response body.
 ```
-{
-}
+
 ```
