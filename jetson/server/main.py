@@ -26,6 +26,7 @@ logger.addHandler(file_handler)
 
 clients = set()
 mic_running = False
+options_map = {}
 
 
 async def notify_hololens(event_type: str):
@@ -35,27 +36,65 @@ async def notify_hololens(event_type: str):
         await asyncio.gather(*(client.send(message) for client in clients))
 
 
+def _normalize_options(raw_response):
+    """
+    Turn a raw response into a list of options.
+    - Gemini returns comma-separated options; parse and enforce exactly 3.
+    """
+    if isinstance(raw_response, list):
+        opts = [o.strip() for o in raw_response if isinstance(o, str) and o.strip()]
+    elif isinstance(raw_response, str):
+        opts = [p.strip() for p in raw_response.split(",") if p.strip()]
+    else:
+        opts = []
+
+    if len(opts) < 3:
+        # pad with empty placeholders to keep length consistent
+        opts.extend([""] * (3 - len(opts)))
+    if len(opts) > 3:
+        opts = opts[:3]
+    return opts
+
+
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
     async for message in ws:
         data = json.loads(message)        
 
-        if "audio_data" not in data.keys() and "image_data" not in data.keys():
-            logger.warning(f"Received a message with unknown type from HoloLens: {data}")
+        msg_type = data.get("type")
+
+        # Handle selection messages.
+        if msg_type == "select":
+            selection_raw = data.get("data") or data.get("selection")
+            try:
+                idx = int(selection_raw) - 1
+                opts = options_map.get(ws, [])
+                selected = opts[idx]
+            except Exception:
+                await ws.send(json.dumps({"type": "error", "message": "Invalid selection"}))
+                continue
+
+            await asyncio.to_thread(speak, selected)
+            await ws.send(json.dumps({"type": "selected", "data": selected}))
             continue
 
-        context = create_context(data)
-        success = await asyncio.to_thread(set_response, context)
+        # Handle incoming context (audio/image).
+        if "audio_data" in data.keys() or "image_data" in data.keys():
+            context = create_context(data)
+            success = await asyncio.to_thread(set_response, context)
 
-        if success:
-            await asyncio.to_thread(speak, context.response)
-            # Also send the text response back to the client.
-            try:
-                await ws.send(json.dumps({"type": "response", "data": context.response}))
-            except Exception as exc:
-                logger.error(f"Failed to send response to client: {exc}")
-        else:
-            logger.error("Failed to get response from LLM.")
+            if success:
+                opts = _normalize_options(context.response)
+                options_map[ws] = opts
+                try:
+                    await ws.send(json.dumps({"type": "options", "data": opts}))
+                except Exception as exc:
+                    logger.error(f"Failed to send options to client: {exc}")
+            else:
+                logger.error("Failed to get response from LLM.")
+            continue
+
+        logger.warning(f"Received a message with unknown type from HoloLens: {data}")
 
 
 async def handler(ws):
@@ -67,6 +106,7 @@ async def handler(ws):
         await handle_hololens(ws)
     finally:
         clients.remove(ws)
+        options_map.pop(ws, None)
         logger.info(f"HoloLens disconnected: {ws.remote_address}")
 
 
