@@ -8,17 +8,17 @@ def set_response(context: Context) -> bool:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
     try:
         if context.image is not None and context.audio_text is not None:
-            response = query_gemini(f'Give me a possible answer or question I could ask after I heard the following text: {context.audio_text} and having seen this image at this time: {context.image}. Give me only the answer or question without any additional text.')
+            response = query_gemini(f'Give me three possible answers or questions in response to the following text: {context.audio_text} and having seen this image at this time: {context.image}. Give me only the answers or questions separated by commas.')
             context.response = response
             return True
         
         elif context.image is not None and context.audio_text is None:
-            response = query_gemini(f'Give me a possible answer or question I could ask after having seen this image at this time: {context.image}. Give me only the answer or question without any additional text.')
+            response = query_gemini(f'Give me three possible answers or questions in response to having seen the following image at this time: {context.image}. Give me only the answers or questions separated by commas.')
             context.response = response
             return True
         
         elif context.image is None and context.audio_text is not None:
-            response = query_gemini(f'Give me a possible answer or question I could ask after I heard the following text: {context.audio_text}. Give me only the answer or question without any additional text.')
+            response = query_gemini(f'Give me three possible answers or questions in response to having heard the following text: {context.audio_text}. Give me only the answers or questions separated by commas.')
             context.response = response
             return True
 
