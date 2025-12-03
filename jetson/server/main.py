@@ -44,7 +44,7 @@ def _normalize_options(raw_response):
     if isinstance(raw_response, list):
         opts = [o.strip() for o in raw_response if isinstance(o, str) and o.strip()]
     elif isinstance(raw_response, str):
-        opts = [p.strip() for p in raw_response.split(",") if p.strip()]
+        opts = [p.strip() for p in raw_response.split("|") if p.strip()]
     else:
         opts = []
 
