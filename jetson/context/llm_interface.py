@@ -1,7 +1,6 @@
-import json
+import logging
 import os
 import requests
-import logging
 
 
 def query_gemini(gemini_prompt: str) -> str:
@@ -38,17 +37,3 @@ def query_gemini(gemini_prompt: str) -> str:
     except Exception as e:
         logging.getLogger(__name__).error(f"Gemini Error: {e}")
         return "There was an error with gemini processing your request."
-
-
-def call_llm(context: str) -> str:
-    logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
-    try:
-        response = query_gemini(f'Give me a possible answer or question I could ask after I heard the following text: {context}. Give me only the answer or question without any additional text.')
-        return response
-    except Exception as e:
-        logging.getLogger(__name__).error(f"LLM Error: {e}")
-        return "Default response as long as the api key is not set."
-
-
-def get_audio_response(audio_data: str) -> str:
-    return call_llm(audio_data)

@@ -4,7 +4,8 @@ import logging
 import sys
 import websockets
 
-from jetson.context.context_from_speech import get_audio_response
+from jetson.context.context import Context
+from jetson.context.response_creator import create_context, set_response
 from jetson.server.output import speak
 
 
@@ -37,19 +38,24 @@ async def notify_hololens(event_type: str):
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
     async for message in ws:
-        data = json.loads(message)
+        data = json.loads(message)        
 
-        if data.get("type") == "audio_data":
-            audio_text = data.get("data")
-            if audio_text is not None:
-                logger.info(f"Received text from HoloLens: {audio_text}")
-                response = await asyncio.to_thread(get_audio_response, audio_text)
-                await asyncio.to_thread(speak, response)
-            else:
-                logger.warning(f"Received 'audio_data' message without 'data' key: {data}")
+        if "audio_data" not in data.keys() and "image_data" not in data.keys():
+            logger.warning(f"Received a message with unknown type from HoloLens: {data}")
+            continue
 
+        context = create_context(data)
+        success = await asyncio.to_thread(set_response, context)
+
+        if success:
+            await asyncio.to_thread(speak, context.response)
+            # Also send the text response back to the client.
+            try:
+                await ws.send(json.dumps({"type": "response", "data": context.response}))
+            except Exception as exc:
+                logger.error(f"Failed to send response to client: {exc}")
         else:
-            logger.info(f"Unknown message from HoloLens: {data}")
+            logger.error("Failed to get response from LLM.")
 
 
 async def handler(ws):
