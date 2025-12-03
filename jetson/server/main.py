@@ -70,6 +70,8 @@ async def handle_hololens(ws):
                 idx = int(selection_raw) - 1
                 opts = options_map.get(ws, [])
                 selected = opts[idx]
+                if not isinstance(selected, str) or not selected.strip():
+                    raise ValueError("Empty selection")
             except Exception:
                 await ws.send(json.dumps({"type": "error", "message": "Invalid selection"}))
                 continue
