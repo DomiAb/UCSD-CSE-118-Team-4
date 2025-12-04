@@ -3,8 +3,13 @@ import json
 import websockets
 
 
+# Sends a request with heard speech
+# Displays options to users enabling user to select
+# Sends back selection to server (This also leads to it being spoken through default speaker)
+
+
 async def main():
-    uri = "ws://192.168.0.210:8765"
+    uri = "ws://localhost:8765"
     async with websockets.connect(uri) as ws:
         # Step 1: send audio data to receive options on the same connection.
         await ws.send(json.dumps({"audio_data": "Can you join us for lunch?"}))
