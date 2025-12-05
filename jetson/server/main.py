@@ -1,10 +1,9 @@
 import asyncio
+from flask import Flask, request, jsonify
 import json
 import logging
 import sys
-import websockets
 
-from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
 from jetson.server.speech import speak_openai
 
@@ -24,122 +23,74 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 
-clients = set()
-mic_running = False
-options_map = {}
+app = Flask(__name__)
+
+options = []
+audio_text = "Default audio text from the beginning."
+        
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"})
 
 
-async def notify_hololens(event_type: str):
-    """Send an event to all connected HoloLens clients."""
-    if clients:
-        message = json.dumps({"type": event_type})
-        await asyncio.gather(*(client.send(message) for client in clients))
+@app.route("/start", methods=["GET"])
+def start():
+    # start listening
+    return jsonify({"status": "started"})
 
 
-def _normalize_options(raw_response):
-    """
-    Turn a raw response into a list of options.
-    - Gemini returns comma-separated options; parse and enforce exactly 3.
-    """
-    if isinstance(raw_response, list):
-        opts = [o.strip() for o in raw_response if isinstance(o, str) and o.strip()]
-    elif isinstance(raw_response, str):
-        opts = [p.strip() for p in raw_response.split("|") if p.strip()]
-    else:
-        opts = []
-
-    if len(opts) < 3:
-        # pad with empty placeholders to keep length consistent
-        opts.extend([""] * (3 - len(opts)))
-    if len(opts) > 3:
-        opts = opts[:3]
-    return opts
+@app.route("/stop", methods=["GET"])
+def stop():
+    # stop listening
+    return jsonify({"status": "stopped"})
 
 
-async def handle_hololens(ws):
-    """Receive messages from HoloLens clients."""
-    async for message in ws:
-        data = json.loads(message)        
+@app.route("/suggest", methods=["GET"])
+def suggest():
+    global audio_text
+    global options
 
-        msg_type = data.get("type")
+    data = {"audio_data": audio_text}
 
-        # Handle selection messages.
-        if msg_type == "select":
-            selection_raw = data.get("data") or data.get("selection")
+    if "audio_data" in data.keys() or "image_data" in data.keys():
+        context = create_context(data)
+        success = asyncio.run(asyncio.to_thread(set_response, context))
+
+        if success and context.response is not None:
+            opts = context._get_normalize_options()
             try:
-                idx = int(selection_raw) - 1
-                opts = options_map.get(ws, [])
-                if idx < 0 or idx >= len(opts):
-                    raise ValueError("Selection out of bounds")
-                selected = opts[idx]
-                if not isinstance(selected, str) or not selected.strip():
-                    raise ValueError("Empty selection")
-            except Exception:
-                await ws.send(json.dumps({"type": "error", "message": "Invalid selection"}))
-                continue
-
-            try:
-                await asyncio.to_thread(speak_openai, selected)
-                await ws.send(json.dumps({"type": "selected", "data": selected}))
+                pass
             except Exception as exc:
-                logger.error(f"TTS failed: {exc}")
-                await ws.send(json.dumps({"type": "error", "message": "TTS failed"}))
-            continue
+                logger.error(f"Failed to send options to client: {exc}")
+        else:
+            logger.error("Failed to get response from LLM.")
+            return jsonify({"error": "LLM response failed"}), 500
 
-        # Handle incoming context (audio/image).
-        if "audio_data" in data.keys() or "image_data" in data.keys():
-            context = create_context(data)
-            success = await asyncio.to_thread(set_response, context)
+        options = opts
+        return jsonify({"options": opts})
 
-            if success:
-                opts = _normalize_options(context.response)
-                options_map[ws] = opts
-                try:
-                    await ws.send(json.dumps({"type": "options", "data": opts}))
-                except Exception as exc:
-                    logger.error(f"Failed to send options to client: {exc}")
-            else:
-                logger.error("Failed to get response from LLM.")
-            continue
-
-        logger.warning(f"Received a message with unknown type from HoloLens: {data}")
+    else:
+        logger.error("No input data received.")
+        return jsonify({"error": "No input data"}), 400
 
 
-async def handler(ws):
-    """Register HoloLens clients and listen to their messages."""
-    logger.info(f"New HoloLens connection from {ws.remote_address}")
-    clients.add(ws)
+@app.route("/select-input", methods=["POST"])
+def select_input():
+    global options
+
+    data = request.get_json()
+    number_str = data.get("data", "") or data.get("selection")
 
     try:
-        await handle_hololens(ws)
-    finally:
-        clients.remove(ws)
-        options_map.pop(ws, None)
-        logger.info(f"HoloLens disconnected: {ws.remote_address}")
+        number = int(number_str)
+        response = options[number - 1]
+    except Exception:
+        return jsonify({"error": "Invalid option index"}), 400
 
-
-async def trigger_button_simulation():
-    """Simulate button press without blocking the event loop."""
-    global mic_running
-
-    while True:
-        prompt = "Press Enter to start microphone..." if not mic_running else "Press Enter to end microphone..."
-        await asyncio.to_thread(input, prompt)
-
-        mic_running = not mic_running
-        event = "start_microphone" if mic_running else "stop_microphone"
-        logger.info(f"Sending event: {event}")
-        await notify_hololens(event)
-
-
-async def main():
-    server = await websockets.serve(handler, "0.0.0.0", 8765)
-    logger.info("Server running on ws://0.0.0.0:8765")
-
-    await trigger_button_simulation()
-
-    await server.wait_closed()
+    asyncio.run(asyncio.to_thread(speak_openai, response))
+    return jsonify({"status": "ok"})
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    app.run(host="0.0.0.0", port=8765)
