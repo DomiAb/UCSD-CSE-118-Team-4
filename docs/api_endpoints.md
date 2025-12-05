@@ -62,7 +62,10 @@ Run with: `python -m jetson.server.main` (listens on `ws://0.0.0.0:8765`)
   The server speaks the selected text via `pyttsx3` (`speak`) on the Jetson’s default speaker.
 - On selection error: `{"type": "error", "message": "Invalid selection"}`
 - On conversation start: `{"type": "conversation_started"}`
-- On conversation stop: `{"type": "conversation_highlight", "data": [...history...]}` followed by `{"type": "conversation_stopped"}`
+- On conversation stop: `{"type": "conversation_highlight", "data": "<highlight_text>"}` followed by `{"type": "conversation_stopped"}`. Highlights are also appended to `conversation_highlights.log` with start/stop timestamps.
+- Highlights/log context:
+  - Recent highlights are loaded from `user_context/conversation_highlights.log` and seeded into new conversations.
+  - Schedule context is loaded from `user_context/events.ics` (ICS calendar) and included in prompts (current event, recent past, and upcoming).
 
 ## Notes on Models/Backends
 - FastAPI server can use Hugging Face (torch) or `llama-cpp` backends via environment variables (e.g., `LLM_BACKEND`, `LLAMA_CPP_MODEL_PATH`).
