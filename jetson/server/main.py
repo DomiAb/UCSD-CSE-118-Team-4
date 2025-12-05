@@ -69,6 +69,8 @@ async def handle_hololens(ws):
             try:
                 idx = int(selection_raw) - 1
                 opts = options_map.get(ws, [])
+                if idx < 0 or idx >= len(opts):
+                    raise ValueError("Selection out of bounds")
                 selected = opts[idx]
                 if not isinstance(selected, str) or not selected.strip():
                     raise ValueError("Empty selection")
