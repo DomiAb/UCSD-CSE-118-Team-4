@@ -6,7 +6,7 @@ import websockets
 
 from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
-from jetson.server.output import speak
+from jetson.server.speech import speak_openai
 
 
 logger = logging.getLogger()
@@ -76,8 +76,12 @@ async def handle_hololens(ws):
                 await ws.send(json.dumps({"type": "error", "message": "Invalid selection"}))
                 continue
 
-            await asyncio.to_thread(speak, selected)
-            await ws.send(json.dumps({"type": "selected", "data": selected}))
+            try:
+                await asyncio.to_thread(speak_openai, selected)
+                await ws.send(json.dumps({"type": "selected", "data": selected}))
+            except Exception as exc:
+                logger.error(f"TTS failed: {exc}")
+                await ws.send(json.dumps({"type": "error", "message": "TTS failed"}))
             continue
 
         # Handle incoming context (audio/image).

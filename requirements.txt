@@ -1,3 +1,4 @@
-pyttsx3
 websockets
 requests
+pyttsx3
+openai
