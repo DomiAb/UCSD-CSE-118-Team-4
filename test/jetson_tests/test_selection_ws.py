@@ -12,7 +12,7 @@ async def main():
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as ws:
         # Step 1: send audio data to receive options on the same connection.
-        await ws.send(json.dumps({"audio_data": "Hey what's up Jeremy! Can you join us for lunch? And how's that dog of yours, I heard he was a little ill."}))
+        await ws.send(json.dumps({"audio_data": "Hey what's up Anchit! I think I left my wallet at yours, have you seen it?"}))
         options_msg = await ws.recv()
         print("Options from server:", options_msg)
 

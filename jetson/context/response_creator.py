@@ -4,21 +4,45 @@ from jetson.context.context import Context
 from jetson.context.llm_interface import query_gemini
 
 
-def set_response(context: Context) -> bool:
+def _history_prefix(history: list) -> str:
+    """Format conversation history into a short prefix."""
+    if not history:
+        return ""
+    parts = []
+    for turn in history:
+        role = turn.get("role", "user")
+        text = turn.get("text", "")
+        if isinstance(text, list):
+            text = "; ".join([str(t) for t in text if t])
+        parts.append(f"{role}: {text}")
+    return "Conversation so far:\n" + "\n".join(parts) + "\n"
+
+
+def set_response(context: Context, history: list | None = None) -> bool:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
+    prefix = _history_prefix(history or [])
     try:
         if context.image is not None and context.audio_text is not None:
-            response = query_gemini(f'Give me three possible answers or questions in response to the following text: {context.audio_text} and having seen this image at this time: {context.image}. Give me only the answers or questions separated by |.')
+            response = query_gemini(
+                f'{prefix}Give three concise answers/questions after hearing: "{context.audio_text}" and seeing this image: {context.image}. '
+                "Return only the three options, separated by '|'."
+            )
             context.response = response
             return True
         
         elif context.image is not None and context.audio_text is None:
-            response = query_gemini(f'Give me three possible answers or questions in response to having seen the following image at this time: {context.image}. Give me only the answers or questions separated by |.')
+            response = query_gemini(
+                f'{prefix}Give three concise answers/questions after seeing this image: {context.image}. '
+                "Return only the three options, separated by '|'."
+            )
             context.response = response
             return True
         
         elif context.image is None and context.audio_text is not None:
-            response = query_gemini(f'Give me three possible answers or questions in response to having heard the following text: {context.audio_text}. Give me only the answers or questions separated by |.')
+            response = query_gemini(
+                f'{prefix}Give three concise answers/questions after hearing: "{context.audio_text}". '
+                "Return only the three options, separated by '|'."
+            )
             context.response = response
             return True
 

@@ -9,6 +9,7 @@ def query_gemini(gemini_prompt: str) -> str:
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable not set.")
 
+    # Gemini 2.5 Flash (fast path)
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     payload = {

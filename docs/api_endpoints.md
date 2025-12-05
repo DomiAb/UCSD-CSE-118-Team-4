@@ -51,6 +51,9 @@ Run with: `python -m jetson.server.main` (listens on `ws://0.0.0.0:8765`)
 - Requires `GEMINI_API_KEY` to be set; uses Gemini to generate three options.
 - Selection messages:
   - `{"type": "select", "data": <1-based index>}` (or `selection` instead of `data`) to pick one of the three options.
+- Conversation control:
+  - `{"type": "start_conversation"}` (or plain string "start conversation") starts a session and resets history.
+  - `{"type": "stop_conversation"}` (or plain string "stop conversation") ends the session, clears options, and returns a conversation highlight with timestamps.
 
 ### Outgoing messages (to HoloLens/client)
 - On success (after audio/image input): `{"type": "options", "data": ["opt1", "opt2", "opt3"]}`  
@@ -58,6 +61,8 @@ Run with: `python -m jetson.server.main` (listens on `ws://0.0.0.0:8765`)
 - On selection: `{"type": "selected", "data": "<chosen_text>"}`  
   The server speaks the selected text via `pyttsx3` (`speak`) on the Jetson’s default speaker.
 - On selection error: `{"type": "error", "message": "Invalid selection"}`
+- On conversation start: `{"type": "conversation_started"}`
+- On conversation stop: `{"type": "conversation_highlight", "data": [...history...]}` followed by `{"type": "conversation_stopped"}`
 
 ## Notes on Models/Backends
 - FastAPI server can use Hugging Face (torch) or `llama-cpp` backends via environment variables (e.g., `LLM_BACKEND`, `LLAMA_CPP_MODEL_PATH`).
