@@ -19,7 +19,6 @@ def speak(text: str):
 def speak_openai(
     text: str,
     voice: str = "ash",
-    instructions: str = "speak in a warm and natural tone and quicker than usual pace",
     model: str = "gpt-4o-mini-tts",
 ):
     """
@@ -38,10 +37,12 @@ def speak_openai(
         model=model,
         voice=voice,
         input=text,
+        instructions=f"Speak at the appropriate tone for {text}. Speak at a conversational pace",
         response_format="wav",
     )
     audio_bytes = resp.read()
 
+    # Use delete=False so the player can read it; clean up after playback.
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp.write(audio_bytes)
         tmp_path = tmp.name
@@ -52,7 +53,13 @@ def speak_openai(
     elif shutil.which("aplay"):
         player = ["aplay", tmp_path]
 
-    if player:
-        subprocess.run(player, check=False)
-    else:
-        print(f"Saved TTS audio to {tmp_path}; play it manually.")
+    try:
+        if player:
+            subprocess.run(player, check=False)
+        else:
+            print(f"Saved TTS audio to {tmp_path}; play it manually.")
+    finally:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass

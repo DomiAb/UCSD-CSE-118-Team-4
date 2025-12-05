@@ -10,12 +10,14 @@ import subprocess
 import tempfile
 from openai import OpenAI
 
+speech_string = "Hey! I appreciate the invite, but I can't today. How's your day going? And Rex is on the mend, just resting up."
+
 
 def synthesize_speech(
     text: str,
     voice: str = "ash",
     model: str = "gpt-4o-mini-tts",
-    instructions: str = "Speak in a positive and cheerful tone. Speak really quickly",
+    instructions: str = f"Speak at the appropriate tone for {speech_string}. Speak at a conversational pace",
 ):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -27,13 +29,14 @@ def synthesize_speech(
         voice=voice,
         input=text,
         response_format="wav",
+        instructions=instructions
     )
     audio_bytes = resp.read()
     return audio_bytes
 
 
 if __name__ == "__main__":
-    audio = synthesize_speech("Testing audio using OpenAI text to speech.")
+    audio = synthesize_speech(speech_string)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp.write(audio)
         tmp_path = tmp.name
