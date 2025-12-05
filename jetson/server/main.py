@@ -6,7 +6,7 @@ import websockets
 
 from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
-from jetson.server.output import speak
+from jetson.server.speech import speak_openai
 
 
 logger = logging.getLogger()
@@ -44,7 +44,7 @@ def _normalize_options(raw_response):
     if isinstance(raw_response, list):
         opts = [o.strip() for o in raw_response if isinstance(o, str) and o.strip()]
     elif isinstance(raw_response, str):
-        opts = [p.strip() for p in raw_response.split(",") if p.strip()]
+        opts = [p.strip() for p in raw_response.split("|") if p.strip()]
     else:
         opts = []
 
@@ -69,13 +69,21 @@ async def handle_hololens(ws):
             try:
                 idx = int(selection_raw) - 1
                 opts = options_map.get(ws, [])
+                if idx < 0 or idx >= len(opts):
+                    raise ValueError("Selection out of bounds")
                 selected = opts[idx]
+                if not isinstance(selected, str) or not selected.strip():
+                    raise ValueError("Empty selection")
             except Exception:
                 await ws.send(json.dumps({"type": "error", "message": "Invalid selection"}))
                 continue
 
-            await asyncio.to_thread(speak, selected)
-            await ws.send(json.dumps({"type": "selected", "data": selected}))
+            try:
+                await asyncio.to_thread(speak_openai, selected)
+                await ws.send(json.dumps({"type": "selected", "data": selected}))
+            except Exception as exc:
+                logger.error(f"TTS failed: {exc}")
+                await ws.send(json.dumps({"type": "error", "message": "TTS failed"}))
             continue
 
         # Handle incoming context (audio/image).
