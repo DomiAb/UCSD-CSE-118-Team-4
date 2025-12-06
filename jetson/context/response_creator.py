@@ -17,7 +17,7 @@ def _history_prefix(history: list) -> str:
         if isinstance(text, list):
             text = "; ".join([str(t) for t in text if t])
         parts.append(f"{role}: {text}")
-    return "\n".join(parts) + "\nConversation so far:\n" + "\n".join(parts[1:]) + "\n"
+    return parts[0] + "\nConversation so far:\n" + "\n".join(parts[1:]) + "\n"
 
 
 def set_response(context: Context, history: list | None = None, schedule_context: str = "") -> bool:
