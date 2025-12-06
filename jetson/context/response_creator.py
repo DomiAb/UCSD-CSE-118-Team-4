@@ -44,7 +44,7 @@ def set_response(context: Context, history: list | None = None, schedule_context
         
         elif context.image is None and context.audio_text is not None:
             response = query_gemini(
-                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}Give three concise answers/questions after hearing: "{context.audio_text}". '
+                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after hearing: "{context.audio_text}". '
                 "Return only the three options, separated by '|'."
             )
             context.response = response
