@@ -1,11 +1,13 @@
 import pathlib
 from datetime import datetime
+import logging
 
 
 def _parse_dt(dt_str: str) -> datetime | None:
     try:
         return datetime.strptime(dt_str.strip(), "%Y%m%dT%H%M%S")
-    except Exception:
+    except ValueError as e:
+        logging.warning(f"Failed to parse date string '{dt_str}': {e}")
         return None
 
 
