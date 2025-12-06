@@ -81,7 +81,7 @@ def summarize_schedule(events: list[dict], now: datetime | None = None) -> str:
         )
 
     if not parts:
-        parts.append("No active events; upcoming schedule:\n" + "; ".join(_fmt_event(ev) for ev in events[:3]))
+        parts.append("No active events; upcoming schedule: " + "; ".join(_fmt_event(ev) for ev in events[:3]))
 
     return " | ".join(parts)
 
