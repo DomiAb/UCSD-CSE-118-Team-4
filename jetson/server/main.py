@@ -1,11 +1,15 @@
 import asyncio
 import json
 import logging
+from datetime import datetime
 import sys
+import pathlib
 import websockets
 
 from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
+from jetson.context.llm_interface import query_gemini
+from jetson.context.calendar import load_and_summarize_schedule
 from jetson.server.speech import speak_openai
 
 
@@ -57,6 +61,60 @@ def _normalize_options(raw_response):
     return opts
 
 
+def _summarize_history(history: list) -> str:
+    """Summarize the conversation history using Gemini for concise highlights."""
+    if not history:
+        return "No conversation history available."
+    lines = []
+    for turn in history:
+        role = turn.get("role", "user")
+        text = turn.get("text", "")
+        if isinstance(text, list):
+            text = "; ".join([str(t) for t in text if t])
+        ts = turn.get("timestamp")
+        if ts:
+            try:
+                ts = float(ts)
+                ts_str = f"{ts:.0f}s"
+            except Exception:
+                ts_str = ""
+        else:
+            ts_str = ""
+        prefix = f"[{ts_str}] " if ts_str else ""
+        lines.append(f"{prefix}{role}: {text}")
+
+    history_text = "\n".join(lines)
+    prompt = (
+        "Summarize this conversation between me and someone else into 1-3 concise bullet highlights that capture key points, "
+        "mentions, and next steps. Keep it concise, clear and meaningful.\n\n"
+        f"{history_text}"
+    )
+    try:
+        return query_gemini(prompt)
+    except Exception as exc:
+        logger.error(f"Failed to summarize history: {exc}")
+        return "Highlight unavailable due to summarization error."
+
+
+def _load_recent_highlights(max_entries: int = 5) -> list:
+    """Load recent highlights from the log file."""
+    log_path = pathlib.Path("user_context/conversation_highlights.log")
+    if not log_path.exists():
+        return []
+    highlights = []
+    try:
+        with log_path.open("r", encoding="utf-8") as f:
+            lines = f.readlines()[-max_entries:]
+        for line in lines:
+            try:
+                highlights.append(json.loads(line))
+            except Exception:
+                continue
+    except Exception as exc:
+        logger.error(f"Failed to read highlights: {exc}")
+    return highlights
+
+
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
     async for message in ws:
@@ -69,7 +127,23 @@ async def handle_hololens(ws):
             msg_type = data.lower().replace(" ", "_")
 
         if msg_type == "start_conversation":
-            conversation_state[ws] = {"active": True, "history": []}
+            recent_highlights = _load_recent_highlights()
+            schedule_context = load_and_summarize_schedule("user_context/events.ics")
+            history_seed = [
+                {
+                    "timestamp": None,
+                    "role": "recent_highlights",
+                    "text": h.get("highlight", ""),
+                }
+                for h in recent_highlights
+                if h.get("highlight")
+            ]
+            conversation_state[ws] = {
+                "active": True,
+                "history": history_seed,
+                "start_at": datetime.now(),
+                "schedule_context": schedule_context,
+            }
             options_map[ws] = []
             try:
                 await ws.send(json.dumps({"type": "conversation_started"}))
@@ -78,12 +152,31 @@ async def handle_hololens(ws):
             continue
 
         if msg_type == "stop_conversation":
-            state = conversation_state.get(ws, {"history": []})
-            highlight = state.get("history", [])
-            conversation_state[ws] = {"active": False, "history": []}
+            state = conversation_state.get(ws, {"history": [], "start_at": datetime.now()})
+            history = state.get("history", [])
+            start_at = state.get("start_at", datetime.now())
+            stop_at = datetime.now()
+
+            # Summarize in a thread to avoid blocking the event loop.
+            highlight_text = await asyncio.to_thread(_summarize_history, history)
+
+            # Persist highlight to a log file.
+            try:
+                log_path = pathlib.Path("user_context/conversation_highlights.log")
+                record = {
+                    "start_at": start_at.isoformat(),
+                    "stop_at": stop_at.isoformat(),
+                    "highlight": highlight_text,
+                }
+                with log_path.open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(record) + "\n")
+            except Exception as exc:
+                logger.error(f"Failed to write conversation highlight: {exc}")
+
+            conversation_state[ws] = {"active": False, "history": [], "start_at": None, "schedule_context": ""}
             options_map[ws] = []
             try:
-                await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight}))
+                await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
                 await ws.send(json.dumps({"type": "conversation_stopped"}))
             except Exception as exc:
                 logger.error(f"Failed to send conversation summary: {exc}")
@@ -148,7 +241,12 @@ async def handle_hololens(ws):
                     "text": context.audio_text,
                 }
             )
-            success = await asyncio.to_thread(set_response, context, state.get("history"))
+            success = await asyncio.to_thread(
+                set_response,
+                context,
+                state.get("history"),
+                state.get("schedule_context", ""),
+            )
 
             if success:
                 opts = _normalize_options(context.response)
@@ -201,7 +299,7 @@ async def main():
         "0.0.0.0",
         8765,
         ping_interval=30,
-        ping_timeout=60,
+        ping_timeout=180,  # allow longer LLM/TTS cycles before timing out
     )
     logger.info("Server running on ws://0.0.0.0:8765")
 

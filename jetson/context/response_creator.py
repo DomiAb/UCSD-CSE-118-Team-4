@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from jetson.context.context import Context
 from jetson.context.llm_interface import query_gemini
@@ -6,25 +7,28 @@ from jetson.context.llm_interface import query_gemini
 
 def _history_prefix(history: list) -> str:
     """Format conversation history into a short prefix."""
+    now_iso = datetime.now().isoformat()
+    parts = [f"Current time: {now_iso}"]
     if not history:
-        return ""
-    parts = []
+        return "\n".join(parts) + "\n"
     for turn in history:
         role = turn.get("role", "user")
         text = turn.get("text", "")
         if isinstance(text, list):
             text = "; ".join([str(t) for t in text if t])
         parts.append(f"{role}: {text}")
-    return "Conversation so far:\n" + "\n".join(parts) + "\n"
+    return parts[0] + "\nConversation so far:\n" + "\n".join(parts[1:]) + "\n"
 
 
-def set_response(context: Context, history: list | None = None) -> bool:
+def set_response(context: Context, history: list | None = None, schedule_context: str = "") -> bool:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
     prefix = _history_prefix(history or [])
+    if schedule_context:
+        prefix = prefix + f"Schedule context: {schedule_context}\n"
     try:
         if context.image is not None and context.audio_text is not None:
             response = query_gemini(
-                f'{prefix}Give three concise answers/questions after hearing: "{context.audio_text}" and seeing this image: {context.image}. '
+                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after hearing: "{context.audio_text}" and seeing this image: {context.image}. '
                 "Return only the three options, separated by '|'."
             )
             context.response = response
@@ -32,7 +36,7 @@ def set_response(context: Context, history: list | None = None) -> bool:
         
         elif context.image is not None and context.audio_text is None:
             response = query_gemini(
-                f'{prefix}Give three concise answers/questions after seeing this image: {context.image}. '
+                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after seeing this image: {context.image}. '
                 "Return only the three options, separated by '|'."
             )
             context.response = response
@@ -40,7 +44,7 @@ def set_response(context: Context, history: list | None = None) -> bool:
         
         elif context.image is None and context.audio_text is not None:
             response = query_gemini(
-                f'{prefix}Give three concise answers/questions after hearing: "{context.audio_text}". '
+                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after hearing: "{context.audio_text}". '
                 "Return only the three options, separated by '|'."
             )
             context.response = response
