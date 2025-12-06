@@ -26,6 +26,7 @@ async def main():
                 if parsed.get("type") == "options":
                     options = parsed.get("data", [])
             except Exception:
+                # Ignore parse errors; not all messages are expected to be valid JSON or contain options.
                 pass
 
         for idx, opt in enumerate(options, start=1):
