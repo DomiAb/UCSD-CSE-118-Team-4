@@ -162,8 +162,6 @@ async def handle_hololens(ws):
 
             # Persist highlight to a log file.
             try:
-                import pathlib
-
                 log_path = pathlib.Path("user_context/conversation_highlights.log")
                 record = {
                     "start_at": start_at.isoformat(),
