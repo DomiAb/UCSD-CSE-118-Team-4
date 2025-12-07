@@ -18,9 +18,12 @@ def main():
     mic_index = int(inp)
     vc.mic = sr.Microphone(device_index=mic_index)
 
-    vc.start()
+    print(f"Using microphone index {mic_index}")
+    input("Press Enter to start listening for 3 seconds...")
+
     print("Listening for 5 seconds...")
-    sleep(5)
+    vc.start()
+    sleep(3)
     audio = vc.stop()
     if audio is None:
         result = ""
