@@ -6,46 +6,72 @@ import threading
 
 
 class VoiceCollector:
+    """
+    Collects audio data from the microphone in the background using the 
+    speech_recognition library's non-blocking listener.
+    """
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.mic = sr.Microphone()
         self.audio_queue = queue.Queue()
         self.listening = False
-        self.listener_thread = None
+        # Holds the function provided by listen_in_background to stop listening.
+        self.stop_listening_callback = None 
 
-    def _listen_loop(self):
-        """Background thread collecting small audio chunks."""
-        with self.mic as source:
-            self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
-
-            while self.listening:
-                try:
-                    audio = self.recognizer.listen(
-                        source,
-                        timeout=None,
-                        phrase_time_limit=3   # small chunks
-                    )
-                    self.audio_queue.put(audio)
-                except Exception:
-                    pass  # ignore timeouts
+    def _listen_callback(self, recognizer, audio):
+        """
+        The function called by the background listener whenever a phrase
+        (up to phrase_time_limit) is detected.
+        """
+        # Only process audio if the start() method hasn't been cancelled by stop()
+        if self.listening:
+            self.audio_queue.put(audio)
 
     def start(self):
-        """Start capturing audio."""
+        """
+        Start capturing audio using the non-blocking background listener.
+        The listener runs in a separate thread managed by the recognizer.
+        """
         self.audio_queue = queue.Queue()
+        
+        # Adjust for ambient noise once when starting.
+        with self.mic as source:
+            self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
+        
         self.listening = True
-        self.listener_thread = threading.Thread(target=self._listen_loop)
-        self.listener_thread.start()
+        
+        # Start the non-blocking listener.
+        # It calls self._listen_callback whenever a phrase is captured.
+        # phrase_time_limit=3 ensures chunks are no longer than 3 seconds.
+        self.stop_listening_callback = self.recognizer.listen_in_background(
+            self.mic, 
+            self._listen_callback, 
+            phrase_time_limit=3
+        )
 
     def stop(self):
-        """Stop capturing audio and return full combined audio."""
-        self.listening = False
-        if self.listener_thread:
-            self.listener_thread.join()
+        """
+        Stop capturing audio, safely terminate the background thread, 
+        and return the full combined audio data.
+        """
+        # Ensure the background thread is stopped gracefully before continuing.
+        if self.stop_listening_callback is not None:
+            # wait_for_stop=True ensures the audio capture loop is cleanly 
+            # shut down, resolving the hang issue.
+            print("--- DEBUG: In vc.stop(), attempting to stop listening callback ---")
+            self.stop_listening_callback(wait_for_stop=True) 
+            self.stop_listening_callback = None
+            print("--- DEBUG: stop_listening callback returned successfully ---")
 
+        self.listening = False
+
+        # Retrieve all collected audio chunks from the queue
         items = list(self.audio_queue.queue)
+        
         if not items:
             return None
 
+        # Combine all recorded AudioData objects into a single object
         combined = items[0]
         for frame in items[1:]:
             combined = sr.AudioData(
@@ -65,30 +91,3 @@ def offline_stt(audio_data):
     except Exception as e:
         print("Speech recognition error:", e)
         return ""
-
-
-async def handle_websocket():
-    vc = VoiceCollector()
-
-    async with websockets.connect(WEBSOCKET_URI) as ws:
-        print("Connected to WebSocket server at", WEBSOCKET_URI)
-
-        while True:
-            msg = await ws.recv()
-
-            if msg == START_MSG:
-                print("Start signal received.")
-                vc.start()
-
-            elif msg == STOP_MSG:
-                print("Stop signal received.")
-                audio = vc.stop()
-                if audio is None:
-                    result = ""
-                else:
-                    result = offline_stt(audio)
-
-                print("Recognized text:", result)
-
-                # send result back to PIC (optional)
-                await ws.send(result)
