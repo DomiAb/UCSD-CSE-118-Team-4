@@ -10,6 +10,7 @@ from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
 from jetson.context.llm_interface import query_gemini
 from jetson.context.calendar import load_and_summarize_schedule
+from jetson.context.speech import VoiceCollector, offline_stt
 from jetson.server.speech import speak_openai
 
 
@@ -117,6 +118,7 @@ def _load_recent_highlights(max_entries: int = 5) -> list:
 
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
+    vc = VoiceCollector()
     async for message in ws:
         data = json.loads(message)        
 
@@ -127,6 +129,7 @@ async def handle_hololens(ws):
             msg_type = data.lower().replace(" ", "_")
 
         if msg_type == "start_conversation":
+            vc.start()
             recent_highlights = _load_recent_highlights()
             schedule_context = load_and_summarize_schedule("user_context/events.ics")
             history_seed = [
@@ -152,6 +155,14 @@ async def handle_hololens(ws):
             continue
 
         if msg_type == "stop_conversation":
+            audio = vc.stop()
+            if audio is None:
+                result = ""
+            else:
+                result = offline_stt(audio)
+
+            print("Recognized text:", result)
+            
             state = conversation_state.get(ws, {"history": [], "start_at": datetime.now()})
             history = state.get("history", [])
             start_at = state.get("start_at", datetime.now())
