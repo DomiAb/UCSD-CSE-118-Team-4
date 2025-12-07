@@ -30,19 +30,23 @@ class VoiceCollector:
     def start(self):
         """
         Start capturing audio using the non-blocking background listener.
-        The listener runs in a separate thread managed by the recognizer.
         """
         self.audio_queue = queue.Queue()
         
-        # Adjust for ambient noise once when starting.
-        with self.mic as source:
-            self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
-        
+        # --- FIX: Isolate the noise adjustment in its own, safe context block ---
+        print("--- DEBUG: Adjusting for ambient noise... ---")
+        try:
+            with self.mic as source:
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
+            print("--- DEBUG: Noise adjustment complete. ---")
+        except Exception as e:
+            # Handle potential failure during stream open/close here
+            print(f"--- WARNING: Ambient noise adjustment failed: {e} ---")
+            # We continue anyway, as the listener might still work.
+
         self.listening = True
         
-        # Start the non-blocking listener.
-        # It calls self._listen_callback whenever a phrase is captured.
-        # phrase_time_limit=3 ensures chunks are no longer than 3 seconds.
+        # --- Start the non-blocking listener (this opens a new stream) ---
         self.stop_listening_callback = self.recognizer.listen_in_background(
             self.mic, 
             self._listen_callback, 
