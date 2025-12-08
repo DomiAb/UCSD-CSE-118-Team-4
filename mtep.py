@@ -7,6 +7,10 @@ from jetson.context.speech import VoiceCollector, offline_stt
 def main():
     vc = VoiceCollector()
 
+    print("Available microphones:")
+    for index, name in enumerate(sr.Microphone.list_microphone_names()):
+        print(f"{index}: {name}")
+
     mic_index = 2  # Change this to the appropriate mic index
     print(f"Using microphone {sr.Microphone.list_microphone_names()[mic_index]}")
 
