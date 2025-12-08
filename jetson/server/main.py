@@ -130,6 +130,11 @@ async def handle_hololens(ws):
 
         if msg_type == "start_conversation":
             logger.info("***** Starting new conversation session. *****")
+            try:
+                await ws.send(json.dumps({"type": "conversation_started"}))
+            except Exception as exc:
+                logger.error(f"Failed to send conversation_started: {exc}")
+            
             vc.start()
             recent_highlights = _load_recent_highlights()
             schedule_context = load_and_summarize_schedule("user_context/events.ics")
@@ -149,15 +154,18 @@ async def handle_hololens(ws):
                 "schedule_context": schedule_context,
             }
             options_map[ws] = []
-            try:
-                await ws.send(json.dumps({"type": "conversation_started"}))
-            except Exception as exc:
-                logger.error(f"Failed to send conversation_started: {exc}")
-            continue
 
         if msg_type == "stop_conversation":
             logger.info("***** Stopping conversation session. *****")
+            try:
+                await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
+                await ws.send(json.dumps({"type": "conversation_stopped"}))
+            except Exception as exc:
+                logger.error(f"Failed to send conversation summary: {exc}")
+            
+            logger.info("Stopping VoiceCollector and processing audio...")
             audio = vc.stop()
+            logger.info("VoiceCollector stopped.")
             if audio is None:
                 result = ""
             else:
@@ -188,12 +196,6 @@ async def handle_hololens(ws):
 
             conversation_state[ws] = {"active": False, "history": [], "start_at": None, "schedule_context": ""}
             options_map[ws] = []
-            try:
-                await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
-                await ws.send(json.dumps({"type": "conversation_stopped"}))
-            except Exception as exc:
-                logger.error(f"Failed to send conversation summary: {exc}")
-            continue
 
         # Handle selection messages.
         if msg_type == "select":
