@@ -179,6 +179,30 @@ async def handle_hololens(ws):
             start_at = state.get("start_at", datetime.now())
             stop_at = datetime.now()
 
+            context = Context()
+            context.audio_text = result
+
+            success = await asyncio.to_thread(
+                set_response,
+                context,
+                state.get("history"),
+                state.get("schedule_context", ""),
+            )
+
+            if success:
+                opts = _normalize_options(context.response)
+                options_map[ws] = opts
+                state["history"].append(
+                    {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_options", "text": opts}
+                )
+                try:
+                    await ws.send(json.dumps({"type": "options", "data": opts}))
+                except Exception as exc:
+                    logger.error(f"Failed to send options to client: {exc}")
+            else:
+                logger.error("Failed to get response from LLM.")
+            continue
+
             # Summarize in a thread to avoid blocking the event loop.
             highlight_text = await asyncio.to_thread(_summarize_history, history)
 
@@ -259,25 +283,6 @@ async def handle_hololens(ws):
                     "text": context.audio_text,
                 }
             )
-            success = await asyncio.to_thread(
-                set_response,
-                context,
-                state.get("history"),
-                state.get("schedule_context", ""),
-            )
-
-            if success:
-                opts = _normalize_options(context.response)
-                options_map[ws] = opts
-                state["history"].append(
-                    {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_options", "text": opts}
-                )
-                try:
-                    await ws.send(json.dumps({"type": "options", "data": opts}))
-                except Exception as exc:
-                    logger.error(f"Failed to send options to client: {exc}")
-            else:
-                logger.error("Failed to get response from LLM.")
             continue
 
         logger.warning(f"Received a message with unknown type from HoloLens: {data}")
