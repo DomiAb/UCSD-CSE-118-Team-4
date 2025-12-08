@@ -129,6 +129,7 @@ async def handle_hololens(ws):
             msg_type = data.lower().replace(" ", "_")
 
         if msg_type == "start_conversation":
+            logger.info("***** Starting new conversation session. *****")
             vc.start()
             recent_highlights = _load_recent_highlights()
             schedule_context = load_and_summarize_schedule("user_context/events.ics")
@@ -155,14 +156,15 @@ async def handle_hololens(ws):
             continue
 
         if msg_type == "stop_conversation":
+            logger.info("***** Stopping conversation session. *****")
             audio = vc.stop()
             if audio is None:
                 result = ""
             else:
                 result = offline_stt(audio)
 
-            print("Recognized text:", result)
-            
+            logger.info(f"Recognized text: {result}")
+
             state = conversation_state.get(ws, {"history": [], "start_at": datetime.now()})
             history = state.get("history", [])
             start_at = state.get("start_at", datetime.now())
