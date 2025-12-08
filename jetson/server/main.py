@@ -226,6 +226,7 @@ async def handle_hololens(ws):
 
             try:
                 # Run TTS without blocking the event loop.
+                logger.info(f"Performing TTS for selection: {selected}")
                 asyncio.create_task(asyncio.to_thread(speak_openai, selected))
             except Exception as exc:
                 logger.error(f"TTS failed: {exc}")
