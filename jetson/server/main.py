@@ -228,10 +228,13 @@ async def handle_hololens(ws):
             selection_raw = data.get("data") or data.get("selection")
             try:
                 idx = int(selection_raw) - 1
+                logger.info(f"User selected option index: {idx}")
                 opts = options_map.get(ws, [])
+                logger.info(f"Available options: {opts}")
                 if idx < 0 or idx >= len(opts):
                     raise ValueError("Selection out of bounds")
                 selected = opts[idx]
+                logger.info(f"User selected option: {selected}")
                 if not isinstance(selected, str) or not selected.strip():
                     raise ValueError("Empty selection")
                 state = conversation_state.get(ws, {"history": []})
