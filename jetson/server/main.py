@@ -156,7 +156,7 @@ async def handle_hololens(ws):
             options_map[ws] = []
             continue
 
-        if msg_type == "stop_conversation":
+        if msg_type == "send_audio":
             logger.info("***** Stopping conversation session. *****")
             try:
                 # await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
