@@ -85,8 +85,8 @@ def _summarize_history(history: list) -> str:
 
     history_text = "\n".join(lines)
     prompt = (
-        "Summarize this conversation between me and someone else into 1-3 concise bullet highlights that capture key points, "
-        "mentions, and next steps. Keep it concise, clear and meaningful.\n\n"
+        "Summarize this conversation between the user and the addressee into 1-3 concise bullet highlights that capture key points, "
+        "mentions, and next steps. Keep it concise, clear and meaningful. Directly give the summary without any additional text. Do not mention the word 'assitant'."
         f"{history_text}"
     )
     try:
@@ -173,7 +173,14 @@ async def handle_hololens(ws):
             except Exception as exc:
                 logger.error(f"Failed to write conversation highlight: {exc}")
 
-            conversation_state[ws] = {"active": False, "history": [], "start_at": None, "schedule_context": ""}
+            conversation_state[ws] = {
+                "active": False,
+                "history": [],
+                "start_at": None,
+                "schedule_context": "",
+                "core_context": "",
+                "session_id": None,
+            }
             options_map[ws] = []
             try:
                 await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))

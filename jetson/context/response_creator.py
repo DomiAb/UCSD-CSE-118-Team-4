@@ -28,24 +28,36 @@ def set_response(context: Context, history: list | None = None, schedule_context
     try:
         if context.image is not None and context.audio_text is not None:
             response = query_gemini(
-                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after hearing: "{context.audio_text}" and seeing this image: {context.image}. '
-                "Return only the three options, separated by '|'."
+                f"""You are helping someone with speech impediments to come up with responses. {prefix}. 
+                Give three concise responses after hearing: "{context.audio_text}" and seeing this image: {context.image}.
+                Ensure that one response agrees and is positive, another disagrees or is negative and the last option is a follow-up question.
+                Return only the three options, separated by '|'.
+                """
             )
             context.response = response
             return True
         
         elif context.image is not None and context.audio_text is None:
             response = query_gemini(
-                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after seeing this image: {context.image}. '
-                "Return only the three options, separated by '|'."
+                f"""You are an assistant helping someone with speech impediments to come up with responses.
+                {prefix}. 
+                Give three concise responses after seeing this image: {context.image}.
+                Ensure that one response agrees and is positive, another disagrees or is negative and the last option is a follow-up question.
+                Return only the three options, separated by '|'.
+                """
+
             )
             context.response = response
             return True
         
         elif context.image is None and context.audio_text is not None:
             response = query_gemini(
-                f'You are an assistant helping someone with speech impediments to come up with responses. {prefix}. Give three concise answers/questions after hearing: "{context.audio_text}". '
-                "Return only the three options, separated by '|'."
+                f"""You are an assistant helping someone with speech impediments to come up with responses.
+                {prefix}. 
+                Give three concise responses after hearing this text: {context.audio_text}.
+                Ensure that one response agrees and is positive, another disagrees or is negative and the last option is a follow-up question.
+                Return only the three options, separated by '|'.
+                """
             )
             context.response = response
             return True
