@@ -25,6 +25,7 @@ def set_response(
     history: list | None = None,
     schedule_context: str = "",
     core_context: str = "",
+    event_context: str = "",
 ) -> bool:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
     prefix = _history_prefix(history or [])
@@ -32,6 +33,8 @@ def set_response(
         prefix = prefix + f"Schedule context: {schedule_context}\n"
     if core_context:
         prefix = prefix + f"User context: {core_context}\n"
+    if event_context:
+        prefix = prefix + f"Event context: {event_context}\n"
     try:
         if context.image is not None and context.audio_text is not None:
             response = query_gemini(

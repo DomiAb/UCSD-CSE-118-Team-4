@@ -32,6 +32,7 @@ clients = set()
 mic_running = False
 options_map = {}
 conversation_state = {}
+event_contexts = {}
 
 
 async def notify_hololens(event_type: str):
@@ -178,6 +179,26 @@ def _append_conversation_log(record: dict):
         logger.error(f"Failed to append conversation log: {exc}")
 
 
+def _load_event_contexts() -> dict:
+    path = pathlib.Path("user_context/event_contexts.json")
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.error(f"Failed to read event contexts: {exc}")
+        return {}
+
+
+def _save_event_contexts(data: dict):
+    path = pathlib.Path("user_context/event_contexts.json")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.error(f"Failed to write event contexts: {exc}")
+
+
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
     async for message in ws:
@@ -194,6 +215,17 @@ async def handle_hololens(ws):
             schedule_context = load_and_summarize_schedule("user_context/events.ics")
             core_context = _load_core_context()
             session_id = datetime.now().isoformat()
+            # Determine active event context
+            events = load_events_from_ics("user_context/events.ics")
+            now = datetime.now()
+            active_event_ctx = ""
+            ctx_map = _load_event_contexts()
+            for ev in events:
+                if ev.get("start") and ev.get("end") and ev["start"] <= now < ev["end"]:
+                    key = f"{ev['summary']}|{ev['start'].isoformat()}|{ev['end'].isoformat()}"
+                    if key in ctx_map:
+                        active_event_ctx = ctx_map[key]
+                    break
             history_seed = [
                 {
                     "timestamp": None,
@@ -210,6 +242,7 @@ async def handle_hololens(ws):
                 "schedule_context": schedule_context,
                 "core_context": core_context,
                 "session_id": session_id,
+                "event_context": active_event_ctx,
             }
             options_map[ws] = []
             try:
@@ -224,6 +257,7 @@ async def handle_hololens(ws):
                 core_lines = _load_core_lines()
                 schedule_context = load_and_summarize_schedule("user_context/events.ics")
                 events = load_events_from_ics("user_context/events.ics")
+                ctx_map = _load_event_contexts()
                 events_payload = [
                     {
                         "summary": ev.get("summary", ""),
@@ -241,6 +275,7 @@ async def handle_hololens(ws):
                             "highlights": highlights_entries,
                             "schedule": schedule_context,
                             "events": events_payload,
+                            "event_contexts": ctx_map,
                         }
                     )
                 )
@@ -291,6 +326,24 @@ async def handle_hololens(ws):
                 await ws.send(json.dumps({"type": "calendar_updated"}))
             except Exception as exc:
                 logger.error(f"Failed to update calendar: {exc}")
+            continue
+
+        if msg_type == "set_event_context":
+            # Expect data: { summary, start, end, context }
+            payload = data.get("data") or {}
+            try:
+                summary = payload.get("summary", "")
+                start = payload.get("start", "")
+                end = payload.get("end", "")
+                ctx = payload.get("context", "")
+                if summary and start and end:
+                    ctx_map = _load_event_contexts()
+                    key = f"{summary}|{start}|{end}"
+                    ctx_map[key] = ctx
+                    _save_event_contexts(ctx_map)
+                    await ws.send(json.dumps({"type": "event_context_updated"}))
+            except Exception as exc:
+                logger.error(f"Failed to set event context: {exc}")
             continue
 
         if msg_type == "stop_conversation":
@@ -414,6 +467,7 @@ async def handle_hololens(ws):
                 state.get("history"),
                 state.get("schedule_context", ""),
                 state.get("core_context", ""),
+                state.get("event_context", ""),
             )
 
             if success:

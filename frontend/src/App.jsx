@@ -74,6 +74,7 @@ function App() {
   const [newLine, setNewLine] = useState("");
   const [newHighlight, setNewHighlight] = useState("");
   const [icsEvents, setIcsEvents] = useState([]);
+  const [eventContexts, setEventContexts] = useState({});
   const [scheduleSummary, setScheduleSummary] = useState({
     current: "None",
     previous: [],
@@ -108,6 +109,9 @@ function App() {
         ...prev,
         current: data.schedule,
       }));
+    }
+    if (data.event_contexts && typeof data.event_contexts === "object") {
+      setEventContexts(data.event_contexts);
     }
   }, []);
 
@@ -169,6 +173,21 @@ function App() {
     reader.readAsText(file);
   };
 
+  const updateEventContext = (ev, ctx) => {
+    const key = `${ev.summary}|${ev.start.toISOString()}|${ev.end.toISOString()}`;
+    const updated = { ...eventContexts, [key]: ctx };
+    setEventContexts(updated);
+    send({
+      type: "set_event_context",
+      data: {
+        summary: ev.summary,
+        start: ev.start.toISOString(),
+        end: ev.end.toISOString(),
+        context: ctx,
+      },
+    });
+  };
+
   return (
     <div className="app">
       <header>
@@ -199,11 +218,8 @@ function App() {
             </button>
             <h3>Recent Messages</h3>
             <div className="log">
-              {conversationLog.map((entry, idx) => (
-                <div key={idx} style={{ marginBottom: 4 }}>
-                  <strong>{entry.role === "user" ? "Heard" : "User Selection"}:</strong>{" "}
-                  {entry.text}
-                </div>
+              {messages.slice(-20).map((m, idx) => (
+                <pre key={idx}>{JSON.stringify(m, null, 2)}</pre>
               ))}
             </div>
           </section>
@@ -331,15 +347,24 @@ function App() {
             </div>
             <h3>Events</h3>
             <ul className="list">
-              {icsEvents.map((ev, idx) => (
-                <li key={idx}>
-                  <div>{ev.summary}</div>
-                  <div className="small">
-                    {ev.start.toLocaleString()} - {ev.end.toLocaleTimeString()}
-                    {ev.location ? ` @ ${ev.location}` : ""}
-                  </div>
-                </li>
-              ))}
+              {icsEvents.map((ev, idx) => {
+                const key = `${ev.summary}|${ev.start.toISOString()}|${ev.end.toISOString()}`;
+                return (
+                  <li key={idx}>
+                    <div>{ev.summary}</div>
+                    <div className="small">
+                      {ev.start.toLocaleString()} - {ev.end.toLocaleTimeString()}
+                      {ev.location ? ` @ ${ev.location}` : ""}
+                    </div>
+                    <textarea
+                      style={{ width: "100%", marginTop: 6 }}
+                      placeholder="Add event-specific context..."
+                      value={eventContexts[key] || ""}
+                      onChange={(e) => updateEventContext(ev, e.target.value)}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}
