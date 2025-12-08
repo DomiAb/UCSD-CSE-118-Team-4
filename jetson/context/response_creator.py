@@ -20,11 +20,18 @@ def _history_prefix(history: list) -> str:
     return parts[0] + "\nConversation so far:\n" + "\n".join(parts[1:]) + "\n"
 
 
-def set_response(context: Context, history: list | None = None, schedule_context: str = "") -> bool:
+def set_response(
+    context: Context,
+    history: list | None = None,
+    schedule_context: str = "",
+    core_context: str = "",
+) -> bool:
     logging.getLogger(__name__).debug(f"Calling LLM with context: {context}")
     prefix = _history_prefix(history or [])
     if schedule_context:
         prefix = prefix + f"Schedule context: {schedule_context}\n"
+    if core_context:
+        prefix = prefix + f"User context: {core_context}\n"
     try:
         if context.image is not None and context.audio_text is not None:
             response = query_gemini(
