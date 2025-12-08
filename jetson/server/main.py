@@ -158,7 +158,7 @@ async def handle_hololens(ws):
         if msg_type == "stop_conversation":
             logger.info("***** Stopping conversation session. *****")
             try:
-                await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
+                # await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
                 await ws.send(json.dumps({"type": "conversation_stopped"}))
             except Exception as exc:
                 logger.error(f"Failed to send conversation summary: {exc}")
