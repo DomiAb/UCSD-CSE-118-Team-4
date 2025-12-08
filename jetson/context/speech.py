@@ -14,7 +14,7 @@ class VoiceCollector:
         self.recognizer = sr.Recognizer()
         self.mic = sr.Microphone()
         self.audio_queue = queue.Queue()
-        self.listening = False
+        self.listening = False  # The state flag
         # Holds the function provided by listen_in_background to stop listening.
         self.stop_listening_callback = None 
 
@@ -24,29 +24,39 @@ class VoiceCollector:
         (up to phrase_time_limit) is detected.
         """
         # Only process audio if the start() method hasn't been cancelled by stop()
+        # This check is good practice but less critical than the one in start()
         if self.listening:
             self.audio_queue.put(audio)
 
     def start(self):
         """
         Start capturing audio using the non-blocking background listener.
-        """
-        self.audio_queue = queue.Queue()
         
-        # --- FIX: Isolate the noise adjustment in its own, safe context block ---
+        FIX: Added a check to prevent multiple concurrent listeners.
+        """
+        # --- FIX: Check if we are already listening ---
+        if self.listening:
+            print("--- WARNING: VoiceCollector is already listening. Ignoring start() call. ---")
+            return
+            
+        self.audio_queue = queue.Queue()
+        self.listening = True # Set the state immediately before starting the listener
+
+        # --- Refinement: Ambient noise adjustment only needs to be done once,
+        #     but it's safe to do it before every session to ensure accuracy.
+        #     The fix is ensuring we only launch one listener. ---
         print("--- DEBUG: Adjusting for ambient noise... ---")
         try:
+            # It's better to isolate the adjustment logic completely.
             with self.mic as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
             print("--- DEBUG: Noise adjustment complete. ---")
         except Exception as e:
-            # Handle potential failure during stream open/close here
             print(f"--- WARNING: Ambient noise adjustment failed: {e} ---")
-            # We continue anyway, as the listener might still work.
+            # We continue anyway.
 
-        self.listening = True
-        
         # --- Start the non-blocking listener (this opens a new stream) ---
+        print("--- DEBUG: Starting new background listener thread ---")
         self.stop_listening_callback = self.recognizer.listen_in_background(
             self.mic, 
             self._listen_callback, 
@@ -58,17 +68,23 @@ class VoiceCollector:
         Stop capturing audio, safely terminate the background thread, 
         and return the full combined audio data.
         """
+        # --- FIX: Check if we are listening before attempting to stop ---
+        if not self.listening:
+            print("--- WARNING: VoiceCollector is not listening. Ignoring stop() call. ---")
+            return None # Or return the previous data if that's desired, but None is safer.
+
         # Ensure the background thread is stopped gracefully before continuing.
         if self.stop_listening_callback is not None:
             # wait_for_stop=True ensures the audio capture loop is cleanly 
-            # shut down, resolving the hang issue.
+            # shut down.
             print("--- DEBUG: In vc.stop(), attempting to stop listening callback ---")
+            # Call the stored stop function
             self.stop_listening_callback(wait_for_stop=True) 
             self.stop_listening_callback = None
             print("--- DEBUG: stop_listening callback returned successfully ---")
 
-        self.listening = False
-
+        self.listening = False # Reset the state
+        
         # Retrieve all collected audio chunks from the queue
         items = list(self.audio_queue.queue)
         
