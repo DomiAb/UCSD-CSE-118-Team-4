@@ -30,7 +30,6 @@ logger.addHandler(file_handler)
 
 
 clients = set()
-mic_running = False
 options_map = {}
 conversation_state = {}
 
@@ -305,20 +304,6 @@ async def handler(ws):
         logger.info(f"HoloLens disconnected: {ws.remote_address}")
 
 
-async def trigger_button_simulation():
-    """Simulate button press without blocking the event loop."""
-    global mic_running
-
-    while True:
-        prompt = "Press Enter to start microphone..." if not mic_running else "Press Enter to end microphone..."
-        await asyncio.to_thread(input, prompt)
-
-        mic_running = not mic_running
-        event = "start_microphone" if mic_running else "stop_microphone"
-        logger.info(f"Sending event: {event}")
-        await notify_hololens(event)
-
-
 async def main():
     server = await websockets.serve(
         handler,
@@ -328,8 +313,6 @@ async def main():
         ping_timeout=180,  # allow longer LLM/TTS cycles before timing out
     )
     logger.info("Server running on ws://0.0.0.0:8765")
-
-    await trigger_button_simulation()
 
     await server.wait_closed()
 
