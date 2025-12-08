@@ -154,6 +154,7 @@ async def handle_hololens(ws):
                 "schedule_context": schedule_context,
             }
             options_map[ws] = []
+            continue
 
         if msg_type == "stop_conversation":
             logger.info("***** Stopping conversation session. *****")
@@ -196,6 +197,7 @@ async def handle_hololens(ws):
 
             conversation_state[ws] = {"active": False, "history": [], "start_at": None, "schedule_context": ""}
             options_map[ws] = []
+            continue
 
         # Handle selection messages.
         if msg_type == "select":
