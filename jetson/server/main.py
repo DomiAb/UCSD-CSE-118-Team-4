@@ -9,7 +9,7 @@ import websockets
 from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
 from jetson.context.llm_interface import query_gemini
-from jetson.context.calendar import load_and_summarize_schedule
+from jetson.context.calendar import load_and_summarize_schedule, load_events_from_ics
 from jetson.server.speech import speak_openai
 
 
@@ -32,6 +32,7 @@ clients = set()
 mic_running = False
 options_map = {}
 conversation_state = {}
+event_contexts = {}
 
 
 async def notify_hololens(event_type: str):
@@ -85,8 +86,8 @@ def _summarize_history(history: list) -> str:
 
     history_text = "\n".join(lines)
     prompt = (
-        "Summarize this conversation between me and someone else into 1-3 concise bullet highlights that capture key points, "
-        "mentions, and next steps. Keep it concise, clear and meaningful.\n\n"
+        "Summarize this conversation between the user and the addressee into 1-3 concise bullet highlights that capture key points, "
+        "mentions, and next steps. Keep it concise, clear and meaningful. Directly give the summary without any additional text. Do not mention the word 'assitant'."
         f"{history_text}"
     )
     try:
@@ -115,6 +116,89 @@ def _load_recent_highlights(max_entries: int = 5) -> list:
     return highlights
 
 
+def _load_core_context() -> str:
+    path = pathlib.Path("user_context/core_context.txt")
+    if not path.exists():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except Exception as exc:
+        logger.error(f"Failed to read core context: {exc}")
+        return ""
+
+
+def _load_core_lines() -> list[str]:
+    txt = _load_core_context()
+    return [ln for ln in txt.splitlines() if ln.strip()]
+
+
+def _write_core_lines(lines: list[str]):
+    path = pathlib.Path("user_context/core_context.txt")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(lines), encoding="utf-8")
+    except Exception as exc:
+        logger.error(f"Failed to write core context: {exc}")
+
+
+def _read_highlights() -> list[dict]:
+    log_path = pathlib.Path("user_context/conversation_highlights.log")
+    if not log_path.exists():
+        return []
+    entries = []
+    try:
+        with log_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    entries.append(json.loads(line))
+                except Exception:
+                    continue
+    except Exception as exc:
+        logger.error(f"Failed to read highlights: {exc}")
+    return entries
+
+
+def _write_highlights(entries: list[dict]):
+    log_path = pathlib.Path("user_context/conversation_highlights.log")
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("w", encoding="utf-8") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        logger.error(f"Failed to write highlights: {exc}")
+
+
+def _append_conversation_log(record: dict):
+    path = pathlib.Path("user_context/conversation_logs.log")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
+    except Exception as exc:
+        logger.error(f"Failed to append conversation log: {exc}")
+
+
+def _load_event_contexts() -> dict:
+    path = pathlib.Path("user_context/event_contexts.json")
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.error(f"Failed to read event contexts: {exc}")
+        return {}
+
+
+def _save_event_contexts(data: dict):
+    path = pathlib.Path("user_context/event_contexts.json")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.error(f"Failed to write event contexts: {exc}")
+
+
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
     async for message in ws:
@@ -129,6 +213,19 @@ async def handle_hololens(ws):
         if msg_type == "start_conversation":
             recent_highlights = _load_recent_highlights()
             schedule_context = load_and_summarize_schedule("user_context/events.ics")
+            core_context = _load_core_context()
+            session_id = datetime.now().isoformat()
+            # Determine active event context
+            events = load_events_from_ics("user_context/events.ics")
+            now = datetime.now()
+            active_event_ctx = ""
+            ctx_map = _load_event_contexts()
+            for ev in events:
+                if ev.get("start") and ev.get("end") and ev["start"] <= now < ev["end"]:
+                    key = f"{ev['summary']}|{ev['start'].isoformat()}|{ev['end'].isoformat()}"
+                    if key in ctx_map:
+                        active_event_ctx = ctx_map[key]
+                    break
             history_seed = [
                 {
                     "timestamp": None,
@@ -143,6 +240,9 @@ async def handle_hololens(ws):
                 "history": history_seed,
                 "start_at": datetime.now(),
                 "schedule_context": schedule_context,
+                "core_context": core_context,
+                "session_id": session_id,
+                "event_context": active_event_ctx,
             }
             options_map[ws] = []
             try:
@@ -151,11 +251,107 @@ async def handle_hololens(ws):
                 logger.error(f"Failed to send conversation_started: {exc}")
             continue
 
+        if msg_type == "get_context":
+            try:
+                highlights_entries = _read_highlights()
+                core_lines = _load_core_lines()
+                schedule_context = load_and_summarize_schedule("user_context/events.ics")
+                events = load_events_from_ics("user_context/events.ics")
+                ctx_map = _load_event_contexts()
+                events_payload = [
+                    {
+                        "summary": ev.get("summary", ""),
+                        "start": ev.get("start").isoformat() if ev.get("start") else "",
+                        "end": ev.get("end").isoformat() if ev.get("end") else "",
+                        "location": ev.get("location", ""),
+                    }
+                    for ev in events
+                ]
+                await ws.send(
+                    json.dumps(
+                        {
+                            "type": "context_snapshot",
+                            "core": core_lines,
+                            "highlights": highlights_entries,
+                            "schedule": schedule_context,
+                            "events": events_payload,
+                            "event_contexts": ctx_map,
+                        }
+                    )
+                )
+            except Exception as exc:
+                logger.error(f"Failed to send context snapshot: {exc}")
+            continue
+
+        if msg_type == "set_core_context":
+            lines = data.get("data") or []
+            if isinstance(lines, list):
+                _write_core_lines([str(ln).strip() for ln in lines if str(ln).strip()])
+                await ws.send(json.dumps({"type": "core_context_updated"}))
+            continue
+
+        if msg_type == "add_highlight":
+            text = data.get("data") or ""
+            if text:
+                entries = _read_highlights()
+                entries.append(
+                    {
+                        "start_at": datetime.now().isoformat(),
+                        "stop_at": datetime.now().isoformat(),
+                        "highlight": str(text),
+                    }
+                )
+                _write_highlights(entries)
+                await ws.send(json.dumps({"type": "highlight_added"}))
+            continue
+
+        if msg_type == "delete_highlight":
+            try:
+                idx = int(data.get("data"))
+                entries = _read_highlights()
+                if 0 <= idx < len(entries):
+                    entries.pop(idx)
+                    _write_highlights(entries)
+                    await ws.send(json.dumps({"type": "highlight_deleted"}))
+            except Exception as exc:
+                logger.error(f"Failed to delete highlight: {exc}")
+            continue
+
+        if msg_type == "set_calendar":
+            ics_text = data.get("data") or ""
+            try:
+                path = pathlib.Path("user_context/events.ics")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(ics_text, encoding="utf-8")
+                await ws.send(json.dumps({"type": "calendar_updated"}))
+            except Exception as exc:
+                logger.error(f"Failed to update calendar: {exc}")
+            continue
+
+        if msg_type == "set_event_context":
+            # Expect data: { summary, start, end, context }
+            payload = data.get("data") or {}
+            try:
+                summary = payload.get("summary", "")
+                start = payload.get("start", "")
+                end = payload.get("end", "")
+                ctx = payload.get("context", "")
+                if summary and start and end:
+                    ctx_map = _load_event_contexts()
+                    key = f"{summary}|{start}|{end}"
+                    ctx_map[key] = ctx
+                    _save_event_contexts(ctx_map)
+                    await ws.send(json.dumps({"type": "event_context_updated"}))
+            except Exception as exc:
+                logger.error(f"Failed to set event context: {exc}")
+            continue
+
         if msg_type == "stop_conversation":
             state = conversation_state.get(ws, {"history": [], "start_at": datetime.now()})
             history = state.get("history", [])
             start_at = state.get("start_at", datetime.now())
             stop_at = datetime.now()
+            session_id = state.get("session_id")
 
             # Summarize in a thread to avoid blocking the event loop.
             highlight_text = await asyncio.to_thread(_summarize_history, history)
@@ -168,12 +364,20 @@ async def handle_hololens(ws):
                     "stop_at": stop_at.isoformat(),
                     "highlight": highlight_text,
                 }
+                log_path.parent.mkdir(parents=True, exist_ok=True)
                 with log_path.open("a", encoding="utf-8") as f:
                     f.write(json.dumps(record) + "\n")
             except Exception as exc:
                 logger.error(f"Failed to write conversation highlight: {exc}")
 
-            conversation_state[ws] = {"active": False, "history": [], "start_at": None, "schedule_context": ""}
+            conversation_state[ws] = {
+                "active": False,
+                "history": [],
+                "start_at": None,
+                "schedule_context": "",
+                "core_context": "",
+                "session_id": None,
+            }
             options_map[ws] = []
             try:
                 await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
@@ -196,6 +400,14 @@ async def handle_hololens(ws):
                 state = conversation_state.get(ws, {"history": []})
                 state.setdefault("history", []).append(
                     {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_selection", "text": selected}
+                )
+                _append_conversation_log(
+                    {
+                        "session_id": state.get("session_id"),
+                        "timestamp": datetime.now().isoformat(),
+                        "role": "assistant_selection",
+                        "text": selected,
+                    }
                 )
             except Exception:
                 try:
@@ -241,23 +453,39 @@ async def handle_hololens(ws):
                     "text": context.audio_text,
                 }
             )
+            _append_conversation_log(
+                {
+                    "session_id": state.get("session_id"),
+                    "timestamp": datetime.now().isoformat(),
+                    "role": "user",
+                    "text": context.audio_text,
+                }
+            )
             success = await asyncio.to_thread(
                 set_response,
                 context,
                 state.get("history"),
                 state.get("schedule_context", ""),
+                state.get("core_context", ""),
+                state.get("event_context", ""),
             )
 
             if success:
                 opts = _normalize_options(context.response)
-                options_map[ws] = opts
-                state["history"].append(
-                    {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_options", "text": opts}
-                )
-                try:
-                    await ws.send(json.dumps({"type": "options", "data": opts}))
-                except Exception as exc:
-                    logger.error(f"Failed to send options to client: {exc}")
+                for client in list(clients):
+                    try:
+                        options_map[client] = opts
+                        if client == ws:
+                            state["history"].append(
+                                {
+                                    "timestamp": asyncio.get_event_loop().time(),
+                                    "role": "assistant_options",
+                                    "text": opts,
+                                }
+                            )
+                        await client.send(json.dumps({"type": "options", "data": opts}))
+                    except Exception as exc:
+                        logger.error(f"Failed to send options to client {client}: {exc}")
             else:
                 logger.error("Failed to get response from LLM.")
             continue

@@ -11,3 +11,4 @@ __pycache__/
 *.log
 
 cse118
+frontend/node_modules
