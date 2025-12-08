@@ -10,7 +10,7 @@ from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
 from jetson.context.llm_interface import query_gemini
 from jetson.context.calendar import load_and_summarize_schedule
-from jetson.context.speech import VoiceCollector, offline_stt
+from jetson.context.speech import VoiceCollector, offline_stt, online_stt_web
 from jetson.server.speech import speak_openai
 
 
@@ -170,7 +170,7 @@ async def handle_hololens(ws):
             if audio is None:
                 result = ""
             else:
-                result = offline_stt(audio)
+                result = online_stt_web(audio)
 
             logger.info(f"Recognized text: {result}")
 

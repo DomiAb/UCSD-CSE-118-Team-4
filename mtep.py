@@ -1,7 +1,7 @@
 from time import sleep
 import speech_recognition as sr
 
-from jetson.context.speech import VoiceCollector, offline_stt
+from jetson.context.speech import VoiceCollector, offline_stt, online_stt_web
 
 
 def main():
@@ -36,7 +36,8 @@ def main():
     else:
         # 🛑 Add Print 4: Before STT
         print("--- DEBUG: Starting offline_stt (This can take a while) ---")
-        result = offline_stt(audio)
+        result = online_stt_web(audio)
+        # result = offline_stt(audio)
         # 🛑 Add Print 5: After STT
         print("--- DEBUG: offline_stt finished. ---")
 

@@ -111,3 +111,25 @@ def offline_stt(audio_data):
     except Exception as e:
         print("Speech recognition error:", e)
         return ""
+
+
+def online_stt_web(audio_data):
+    """
+    Convert audio to text using the free online Google Web Speech API.
+    (Requires internet access)
+    """
+    recognizer = sr.Recognizer()
+    try:
+        # We use recognize_google() instead of recognize_sphinx()
+        text = recognizer.recognize_google(audio_data)
+        return text
+    except sr.UnknownValueError:
+        print("Google Web Speech API could not understand audio")
+        return ""
+    except sr.RequestError as e:
+        # Check for network issues or service limits
+        print(f"Could not request results from Google Web Speech API; {e}")
+        return ""
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return ""
