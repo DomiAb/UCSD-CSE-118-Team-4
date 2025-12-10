@@ -1,6 +1,5 @@
 import asyncio
 import websockets
-import speech_recognition as sr
 import queue
 import threading
 

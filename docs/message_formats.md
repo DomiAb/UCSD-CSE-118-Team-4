@@ -30,6 +30,9 @@ The selected option (as an index) is sent to the Jetson, so that it can read out
 - Start a conversation/session  
   `{"type": "start_conversation"}` (or plain string "start conversation")
 
+- Trigger Pi to send audio (e.g., stop listening & send request)  
+  `{"type": "send_audio"}` (broadcasts `send_audio` event to connected clients)
+
 - Send speech/image for options (must be inside a started conversation)  
   `{"audio_data": "<spoken_text>", "image_data": "<optional_base64_image>"}`
 

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
 import sys
 import pathlib
@@ -10,7 +11,6 @@ from jetson.context.context import Context
 from jetson.context.response_creator import create_context, set_response
 from jetson.context.llm_interface import query_gemini
 from jetson.context.calendar import load_and_summarize_schedule, load_events_from_ics
-from jetson.context.speech import VoiceCollector, offline_stt, online_stt_web
 from jetson.server.speech import speak_openai
 
 
@@ -33,6 +33,8 @@ clients = set()
 options_map = {}
 conversation_state = {}
 event_contexts = {}
+active_session = None
+mic_process = None
 
 
 async def notify_hololens(event_type: str):
@@ -179,6 +181,43 @@ def _append_conversation_log(record: dict):
         logger.error(f"Failed to append conversation log: {exc}")
 
 
+async def _start_mic_sender():
+    """Start mic_vad_sender in a separate process if not already running."""
+    global mic_process
+    if mic_process and mic_process.returncode is None:
+        return
+    ws_url = os.getenv("WS_URL", "ws://localhost:8765")
+    script_path = pathlib.Path(__file__).resolve().parent.parent / "client" / "mic_vad_sender.py"
+    if not script_path.exists():
+        logger.error(f"mic_vad_sender not found at {script_path}")
+        return
+    try:
+        mic_process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            str(script_path),
+            "--ws",
+            ws_url,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        logger.info("Started mic_vad_sender process.")
+    except Exception as exc:
+        logger.error(f"Failed to start mic_vad_sender: {exc}")
+
+
+async def _stop_mic_sender():
+    """Stop mic_vad_sender process if running."""
+    global mic_process
+    if mic_process and mic_process.returncode is None:
+        try:
+            mic_process.terminate()
+            await mic_process.wait()
+            logger.info("Stopped mic_vad_sender process.")
+        except Exception as exc:
+            logger.error(f"Failed to stop mic_vad_sender: {exc}")
+    mic_process = None
+
+
 def _load_event_contexts() -> dict:
     path = pathlib.Path("user_context/event_contexts.json")
     if not path.exists():
@@ -201,7 +240,6 @@ def _save_event_contexts(data: dict):
 
 async def handle_hololens(ws):
     """Receive messages from HoloLens clients."""
-    vc = VoiceCollector()
     async for message in ws:
         data = json.loads(message)        
 
@@ -217,8 +255,8 @@ async def handle_hololens(ws):
                 await ws.send(json.dumps({"type": "conversation_started"}))
             except Exception as exc:
                 logger.error(f"Failed to send conversation_started: {exc}")
-            
-            vc.start()
+            logger.info("***** Clearing conversation state and speaker. *****")
+            await _start_mic_sender()
             recent_highlights = _load_recent_highlights()
             schedule_context = load_and_summarize_schedule("user_context/events.ics")
             core_context = _load_core_context()
@@ -251,7 +289,10 @@ async def handle_hololens(ws):
                 "core_context": core_context,
                 "session_id": session_id,
                 "event_context": active_event_ctx,
+                "speaking": False,
             }
+            global active_session
+            active_session = conversation_state[ws]
             options_map[ws] = []
             continue
 
@@ -360,40 +401,13 @@ async def handle_hololens(ws):
             continue
 
         if msg_type == "stop_conversation":
-            state = conversation_state.get(ws, {"history": [], "start_at": datetime.now()})
+            state = conversation_state.get(ws) or active_session or {"history": [], "start_at": datetime.now()}
             history = state.get("history", [])
             start_at = state.get("start_at", datetime.now())
             stop_at = datetime.now()
-
-            context = Context()
-            context.audio_text = result
-
-            success = await asyncio.to_thread(
-                set_response,
-                context,
-                state.get("history"),
-                state.get("schedule_context", ""),
-            )
-
-            if success:
-                opts = _normalize_options(context.response)
-                options_map[ws] = opts
-                state["history"].append(
-                    {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_options", "text": opts}
-                )
-                try:
-                    await ws.send(json.dumps({"type": "options", "data": opts}))
-                except Exception as exc:
-                    logger.error(f"Failed to send options to client: {exc}")
-            else:
-                logger.error("Failed to get response from LLM.")
-            continue
             session_id = state.get("session_id")
-
-            # Summarize in a thread to avoid blocking the event loop.
             highlight_text = await asyncio.to_thread(_summarize_history, history)
 
-            # Persist highlight to a log file.
             try:
                 log_path = pathlib.Path("user_context/conversation_highlights.log")
                 record = {
@@ -414,8 +428,17 @@ async def handle_hololens(ws):
                 "schedule_context": "",
                 "core_context": "",
                 "session_id": None,
+                "event_context": "",
+                "speaking": False,
             }
+            active_session = None
             options_map[ws] = []
+            try:
+                await ws.send(json.dumps({"type": "conversation_highlight", "data": highlight_text}))
+                await ws.send(json.dumps({"type": "conversation_stopped"}))
+            except Exception as exc:
+                logger.error(f"Failed to send conversation summary: {exc}")
+            await _stop_mic_sender()
             continue
 
         # Handle selection messages.
@@ -432,7 +455,9 @@ async def handle_hololens(ws):
                 logger.info(f"User selected option: {selected}")
                 if not isinstance(selected, str) or not selected.strip():
                     raise ValueError("Empty selection")
-                state = conversation_state.get(ws, {"history": []})
+                state = conversation_state.get(ws) or active_session
+                if not state:
+                    raise ValueError("No active conversation for selection")
                 state.setdefault("history", []).append(
                     {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_selection", "text": selected}
                 )
@@ -444,6 +469,7 @@ async def handle_hololens(ws):
                         "text": selected,
                     }
                 )
+                state["speaking"] = True
             except Exception:
                 try:
                     await ws.send(json.dumps({"type": "error", "message": "Invalid selection"}))
@@ -453,7 +479,8 @@ async def handle_hololens(ws):
 
             # Send selection back immediately, then perform TTS in the background to avoid blocking/ping timeouts.
             try:
-                await ws.send(json.dumps({"type": "selected", "data": selected}))
+                for client in list(clients):
+                    await client.send(json.dumps({"type": "selected", "data": selected}))
             except Exception as exc:
                 logger.error(f"Failed to send selected response: {exc}")
                 continue
@@ -461,7 +488,18 @@ async def handle_hololens(ws):
             try:
                 # Run TTS without blocking the event loop.
                 logger.info(f"Performing TTS for selection: {selected}")
-                asyncio.create_task(asyncio.to_thread(speak_openai, selected))
+                async def _run_tts():
+                    try:
+                        await asyncio.to_thread(speak_openai, selected)
+                    finally:
+                        state["speaking"] = False
+                        for client in list(clients):
+                            try:
+                                await client.send(json.dumps({"type": "tts_done"}))
+                                await client.send(json.dumps({"type": "resume_listening"}))
+                            except Exception as exc_inner:
+                                logger.error(f"Failed to send tts_done: {exc_inner}")
+                asyncio.create_task(_run_tts())
             except Exception as exc:
                 logger.error(f"TTS failed: {exc}")
                 try:
@@ -472,13 +510,20 @@ async def handle_hololens(ws):
 
         # Handle incoming context (audio/image).
         if "audio_data" in data.keys() or "image_data" in data.keys():
-            state = conversation_state.get(ws, {"active": False, "history": []})
-            if not state.get("active"):
+            state = conversation_state.get(ws) or active_session
+            if not state or not state.get("active"):
                 logger.warning("Received audio/image without an active conversation.")
                 try:
                     await ws.send(json.dumps({"type": "error", "message": "Conversation not started"}))
                 except Exception as exc:
                     logger.error(f"Failed to send conversation not started error: {exc}")
+                continue
+            if state.get("speaking"):
+                logger.info("Dropping audio input while TTS is in progress.")
+                try:
+                    await ws.send(json.dumps({"type": "error", "message": "TTS in progress"}))
+                except Exception as exc:
+                    logger.error(f"Failed to send TTS-in-progress error: {exc}")
                 continue
 
             context = create_context(data)
