@@ -2,3 +2,6 @@ websockets
 requests
 pyttsx3
 openai
+SpeechRecognition
+pyaudio
+pocketsphinx
