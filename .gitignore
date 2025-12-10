@@ -12,3 +12,4 @@ __pycache__/
 
 cse118
 frontend/node_modules
+frontend/.vite
