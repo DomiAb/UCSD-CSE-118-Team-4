@@ -32,7 +32,7 @@ def set_response(
     if schedule_context:
         prefix = prefix + f"Schedule context: {schedule_context}\n"
     if core_context:
-        prefix = prefix + f"User context: {core_context}\n"
+        prefix = prefix + f"Information on device user (who you are coming up with responses for): {core_context}\n"
     if event_context:
         prefix = prefix + f"Event context: {event_context}\n"
     try:
