@@ -592,7 +592,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e314dfef9af0904e80129bcc0a79361, type: 3}
   m_Name: HandTracking WSA
   m_EditorClassIdentifier: 
+<<<<<<< HEAD
   m_enabled: 1
+=======
+  m_enabled: 0
+>>>>>>> af50c24ea916df472e2ec492e2770af438c6d03c
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handtracking
