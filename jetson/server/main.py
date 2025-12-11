@@ -88,7 +88,7 @@ def _summarize_history(history: list) -> str:
 
     history_text = "\n".join(lines)
     prompt = (
-        "Summarize this conversation between the user and the addressee into 1-3 concise bullet highlights that capture key points, "
+        "Summarize this conversation between the device user (one is who is selecting responses) and the addressee (the person who the speech is heard from) into 1-3 concise bullet highlights that capture key points, "
         "mentions, and next steps. Keep it concise, clear and meaningful. Directly give the summary without any additional text. Do not mention the word 'assitant'."
         f"{history_text}"
     )
