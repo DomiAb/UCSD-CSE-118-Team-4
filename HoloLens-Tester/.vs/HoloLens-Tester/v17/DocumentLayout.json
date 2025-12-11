@@ -1,0 +1,143 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\",
+  "Documents": [
+    {
+<<<<<<< HEAD
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\assets\\scripts\\hololensspeechsender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\hololensspeechsender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\assets\\scripts\\buttontoserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\buttontoserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|c:\\users\\mew038\\desktop\\hololens-tester\\assets\\scripts\\globalpinchcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\globalpinchcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+=======
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|c:\\users\\mew038\\desktop\\hololens-tester\\assets\\scripts\\hololensspeechsender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\hololensspeechsender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|c:\\users\\mew038\\desktop\\hololens-tester\\assets\\scripts\\buttontoserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\buttontoserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|c:\\users\\mew038\\desktop\\hololens-tester\\assets\\scripts\\connection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:assets\\scripts\\connection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+>>>>>>> af50c24ea916df472e2ec492e2770af438c6d03c
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\assets\\scripts\\buttoncontentloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\buttoncontentloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\assets\\scripts\\unitymainthreaddispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{23F7FAEF-5D18-E25C-752F-382A11A8C783}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\unitymainthreaddispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+<<<<<<< HEAD
+              "DocumentIndex": 2,
+              "Title": "GlobalPinchController.cs",
+              "DocumentMoniker": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\GlobalPinchController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\GlobalPinchController.cs",
+              "ToolTip": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\GlobalPinchController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\GlobalPinchController.cs",
+              "ViewState": "AgIAAFMAAAAAAAAAAAAgwGUAAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-07T23:08:59.876Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+=======
+>>>>>>> af50c24ea916df472e2ec492e2770af438c6d03c
+              "DocumentIndex": 1,
+              "Title": "ButtonToServer.cs",
+              "DocumentMoniker": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\ButtonToServer.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\ButtonToServer.cs",
+              "ToolTip": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\ButtonToServer.cs",
+              "RelativeToolTip": "Assets\\Scripts\\ButtonToServer.cs",
+<<<<<<< HEAD
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAkAAAAAAAAAA==",
+=======
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+>>>>>>> af50c24ea916df472e2ec492e2770af438c6d03c
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-05T00:57:34.302Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+<<<<<<< HEAD
+=======
+              "DocumentIndex": 2,
+              "Title": "Connection.cs",
+              "DocumentMoniker": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\Connection.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Connection.cs",
+              "ToolTip": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\Connection.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Connection.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T22:14:57.66Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+>>>>>>> af50c24ea916df472e2ec492e2770af438c6d03c
+              "DocumentIndex": 0,
+              "Title": "HoloLensSpeechSender.cs",
+              "DocumentMoniker": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\HoloLensSpeechSender.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\HoloLensSpeechSender.cs",
+              "ToolTip": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\HoloLensSpeechSender.cs",
+              "RelativeToolTip": "Assets\\Scripts\\HoloLensSpeechSender.cs",
+<<<<<<< HEAD
+              "ViewState": "AgIAACsAAAAAAAAAAAAQwBQAAAAuAAAAAAAAAA==",
+=======
+              "ViewState": "AgIAACQAAAAAAAAAAAAAwGQAAAAeAAAAAAAAAA==",
+>>>>>>> af50c24ea916df472e2ec492e2770af438c6d03c
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T00:13:21.793Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "UnityMainThreadDispatcher.cs",
+              "DocumentMoniker": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\UnityMainThreadDispatcher.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UnityMainThreadDispatcher.cs",
+              "ToolTip": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\UnityMainThreadDispatcher.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UnityMainThreadDispatcher.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T22:56:50.595Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ButtonContentLoader.cs",
+              "DocumentMoniker": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\ButtonContentLoader.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\ButtonContentLoader.cs",
+              "ToolTip": "C:\\Users\\mew038\\Desktop\\HoloLens-Tester\\Assets\\Scripts\\ButtonContentLoader.cs",
+              "RelativeToolTip": "Assets\\Scripts\\ButtonContentLoader.cs",
+              "ViewState": "AgIAACUAAAAAAAAAAAAkwFAAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T22:40:57.228Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
