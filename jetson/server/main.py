@@ -192,13 +192,23 @@ async def _start_mic_sender():
         logger.error(f"mic_vad_sender not found at {script_path}")
         return
     try:
+        env = os.environ.copy()
+        env["WS_URL"] = ws_url
+        # Pass through OPENAI_API_KEY and other env as-is.
+        repo_root = pathlib.Path(__file__).resolve().parents[2]
+        log_path = pathlib.Path("user_context/mic_vad_sender.log")
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_file = log_path.open("ab")
+        logger.info(f"Launching mic_vad_sender: {sys.executable} {script_path} --ws {ws_url} (cwd={repo_root})")
         mic_process = await asyncio.create_subprocess_exec(
             sys.executable,
             str(script_path),
             "--ws",
             ws_url,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stdout=log_file,
+            stderr=log_file,
+            cwd=str(repo_root),
+            env=env,
         )
         logger.info("Started mic_vad_sender process.")
     except Exception as exc:

@@ -2,6 +2,8 @@ import os
 import shutil
 import subprocess
 import tempfile
+import io
+import wave
 
 import pyttsx3
 from openai import OpenAI
@@ -20,6 +22,7 @@ def speak_openai(
     text: str,
     voice: str = "ash",
     model: str = "gpt-4o-mini-tts",
+    silence_sec: float = 0.3,
 ):
     """
     Generate speech via OpenAI TTS and play it immediately.
@@ -42,10 +45,21 @@ def speak_openai(
     )
     audio_bytes = resp.read()
 
-    # Use delete=False so the player can read it; clean up after playback.
+    # Prepend a short silence to avoid BT speakers clipping the start.
+    with wave.open(io.BytesIO(audio_bytes), "rb") as wf:
+        params = wf.getparams()
+        frames = wf.readframes(wf.getnframes())
+    n_channels, sampwidth, framerate = params.nchannels, params.sampwidth, params.framerate
+    silence_frames = int(framerate * silence_sec)
+    silence_bytes = b"\x00" * silence_frames * n_channels * sampwidth
+
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-        tmp.write(audio_bytes)
         tmp_path = tmp.name
+        with wave.open(tmp, "wb") as out:
+            out.setnchannels(n_channels)
+            out.setsampwidth(sampwidth)
+            out.setframerate(framerate)
+            out.writeframes(silence_bytes + frames)
 
     player = None
     if shutil.which("afplay"):
