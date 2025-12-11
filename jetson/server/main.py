@@ -469,13 +469,13 @@ async def handle_hololens(ws):
                 if not state:
                     raise ValueError("No active conversation for selection")
                 state.setdefault("history", []).append(
-                    {"timestamp": asyncio.get_event_loop().time(), "role": "assistant_selection", "text": selected}
+                    {"timestamp": asyncio.get_event_loop().time(), "role": "user", "text": selected}
                 )
                 _append_conversation_log(
                     {
                         "session_id": state.get("session_id"),
                         "timestamp": datetime.now().isoformat(),
-                        "role": "assistant_selection",
+                        "role": "user",
                         "text": selected,
                     }
                 )
@@ -540,7 +540,7 @@ async def handle_hololens(ws):
             state.setdefault("history", []).append(
                 {
                     "timestamp": asyncio.get_event_loop().time(),
-                    "role": "user",
+                    "role": "addressee",
                     "text": context.audio_text,
                 }
             )
@@ -548,7 +548,7 @@ async def handle_hololens(ws):
                 {
                     "session_id": state.get("session_id"),
                     "timestamp": datetime.now().isoformat(),
-                    "role": "user",
+                    "role": "addressee",
                     "text": context.audio_text,
                 }
             )
